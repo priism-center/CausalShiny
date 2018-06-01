@@ -6,3 +6,7 @@ GUI for Causal Inference
 * c
 * d
 * e
+
+
+![bartCause](https://github.com/vdorie/bartCause)
+![treatSens](https://cran.r-project.org/web/packages/treatSens/treatSens.pdf)
