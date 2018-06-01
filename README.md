@@ -8,5 +8,5 @@ GUI for Causal Inference
 * e
 
 
-![bartCause](https://github.com/vdorie/bartCause)
-![treatSens](https://cran.r-project.org/web/packages/treatSens/treatSens.pdf)
+[bartCause](https://github.com/vdorie/bartCause)  
+[treatSens](https://cran.r-project.org/web/packages/treatSens/treatSens.pdf)
