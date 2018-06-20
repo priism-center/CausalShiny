@@ -65,8 +65,7 @@ ui <- fluidPage(
                                                "text/comma-separated-values,text/plain",
                                                ".csv")),
                           
-                          # Horizontal line
-                          tags$hr(),
+                          hr(),
                           
                           # Input: header
                           checkboxInput("header", "Header", TRUE),
@@ -79,8 +78,7 @@ ui <- fluidPage(
                             numericInput("idcol", "Subject ID Column Number", value = 1)
                           ),
                           
-                          # Horizontal line
-                          tags$hr(),
+                          hr(),
                           
                           # Input: Y Column and Z column
                           numericInput("zcol", "Treatment (Y) Column Number", value = 2),
@@ -112,7 +110,7 @@ ui <- fluidPage(
                                                    ATC = "ATC"),
                                        selected = "ATE"),
                           
-                          tags$hr(),
+                          hr(),
                           
                           # Input: Survey Weights
                           checkboxInput("sweight", "Survey Weights", FALSE),
@@ -123,9 +121,47 @@ ui <- fluidPage(
                           conditionalPanel(
                             condition = "input.pscore",
                             radioButtons("pscoreas", "Propensity Score",
-                                         choices = c("As Covariate" = ",",
-                                                     "As Weight" = ";"),
-                                         selected = ","))
+                                         choices = c("As Covariate" = FALSE,
+                                                     "As Weight" = TRUE),
+                                         selected = FALSE)),
+                          
+                          hr(),
+                          
+                          #Input: Add method for fitting treatment assignment mechanism
+                          radioButtons("trtmethod", "Select Method for Treatment Assignment Mechanism",
+                                       choices = c("none" = "none",
+                                                   "glm" = "glm",
+                                                   "bart" = "bart",
+                                                   "bart.xval" = "bart.xval"),
+                                       selected = "none"),
+                          
+                          hr(),
+                          
+                          #Input: Add method for fitting response surface
+                          radioButtons("rspmethod", "Select Method for Response Surface",
+                                       choices = c("bart" = "bart",
+                                                   "pweight" = "pweight",
+                                                   "tmle" = "tmle"),
+                                       selected = "bart"),
+                          
+                          hr(),
+                          
+                          #Input: Add common support rule
+                          radioButtons("csrule", "Select Common Support Rule",
+                                       choices = c("none" = "none",
+                                                   "sd" = "sd",
+                                                   "chisq" = "chisq"),
+                                       selected = "none"),
+                          
+                          hr(),
+                          
+                          #Input: Add common support cut
+                          radioButtons("cscut", "Select Common Support Cut",
+                                       choices = c("NA real" = "NA_real_",
+                                                   "1" = 1,
+                                                   "0.05" = 0.05),
+                                       selected = "NA_real_")
+                          
                         ),
                         
                         
@@ -155,6 +191,9 @@ server <- function(input, output) {
       {
         df <- read.csv(input$file$datapath,
                        header = input$header)
+        
+        ### add check for variables are categorical
+        
       },
       error = function(e) {
         stop(safeError(e))
@@ -168,10 +207,11 @@ server <- function(input, output) {
     
     tryCatch(
       {
-        fit1 <- bartc(response = df[, ycol], treatment = df[, zcol], 
-                      confounders = df[, c(-ycol, -zcol)], data = df, 
-                      method.rsp = "bart", method.trt = "none", 
-                      commonSup.rule = "none", commonSup.cut = NA_real_)
+        fit1 <- bartc(response = df[, input$ycol], treatment = df[, input$zcol], 
+                      confounders = df[, c(-input$ycol, -input$zcol)], data = df, 
+                      method.rsp = input$rspmethod, method.trt = input$trtmethod, 
+                      commonSup.rule = input$csrule, commonSup.cut = input$cscut,
+                      propensityScoreAsCovariate = input$pscoreas)
         plot_sigma(fit1)
         plot_support(fit1)
         plot_est(fit1)
