@@ -1,7 +1,7 @@
 # Causal Inference R-Shiny
 This RShiny application aims to simplify the process of conducting Causal Inference using BART (Bayesian Additive regression Trees).
 
-## What it does
+## What It Does
 * Allows options of different methods on propensity scores, treatment variables, and response variables
 * Estimates ATE (Average Treatment Effect), ATT (Average Treatment Effect on the Treated), and ATC (Average Treatment Effect for the Controls)
 * Renders Diagnostic plots of convergence, individual effects, and overlap
@@ -14,6 +14,6 @@ This RShiny application aims to simplify the process of conducting Causal Infere
 * Specify the column number of ID column (if applicable), treatment column (Y), and response column (Z)
 * Use Option panel to select method of analysis
 
-## Examples:
+## Packages Used
 * [bartCause](https://github.com/vdorie/bartCause)  
 * [treatSens](https://cran.r-project.org/web/packages/treatSens/treatSens.pdf)
