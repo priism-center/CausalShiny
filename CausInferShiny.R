@@ -210,7 +210,8 @@ server <- function(input, output) {
         fit1 <- bartc(response = df[, input$ycol], treatment = df[, input$zcol], 
                       confounders = df[, c(-input$ycol, -input$zcol)], data = df, 
                       method.rsp = input$rspmethod, method.trt = input$trtmethod, 
-                      commonSup.rule = input$csrule, commonSup.cut = input$cscut,
+                      estimand = input$estimand, commonSup.rule = input$csrule, 
+                      commonSup.cut = input$cscut,
                       propensityScoreAsCovariate = input$pscoreas)
         plot_sigma(fit1)
         plot_support(fit1)
