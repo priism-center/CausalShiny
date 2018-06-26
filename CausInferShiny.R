@@ -82,14 +82,11 @@ ui <- fluidPage(
                           
                           hr(),
                           
-                          # Input: Y Column and Z column (DELETE IF THE NEW ONE WORKS)
-                          #numericInput("zcol", "Treatment (Y) Column Number", value = 2),
-                          #numericInput("ycol", "Response (Z) Column Number", value = 3),
-                          
-                          # NEW INTERFACE FOR Y AND Z SELECTION
+                          # Column Selection for X, Y, and Z
+                          selectInput("xcol", "Select Covariates (X) Columns", 
+                                      choices = NULL, multiple = TRUE),
                           selectInput("ycol", "Select Response (Y) Column", choices = NULL),
                           selectInput("zcol", "Select Treatment (Z) Column", choices = NULL)
-                          ##########
                           
                         ),
                         
@@ -113,9 +110,9 @@ ui <- fluidPage(
                           
                           # Input: Select Estimand
                           radioButtons("estimand", "Select Estimand",
-                                       choices = c(ATE = "ate",
-                                                   ATT = "att",
-                                                   ATC = "atc"),
+                                       choices = c("ATE" = "ate",
+                                                   "ATT" = "att",
+                                                   "ATC" = "atc"),
                                        selected = "ate"),
                           
                           hr(),
@@ -168,7 +165,10 @@ ui <- fluidPage(
                                        choices = c("NA real" = "NA_real_",
                                                    "1" = 1,
                                                    "0.05" = 0.05),
-                                       selected = "NA_real_")
+                                       selected = "NA_real_"),
+                          
+                          # Action Button for plotting
+                          actionButton("showplot", "Plot")
                           
                         ),
                         
@@ -177,6 +177,7 @@ ui <- fluidPage(
                         mainPanel(
                           
                           # Output: plots
+                          tableOutput("filteredtable"),
                           plotOutput("postplot")
                         )
                       )
@@ -191,51 +192,64 @@ ui <- fluidPage(
 #########################################
 server <- function(input, output, session) {
   
-  output$uploads <- renderTable({
-    
+  # Create global data object
+  my_data <- reactive({
     req(input$file)
-    
-    tryCatch(
-      {
-        df <- read.csv(input$file$datapath,
-                       header = input$header)
-        
-        ### add check for variables are categorical
-        
-      },
-      error = function(e) {
-        stop(safeError(e))
-      }
-    )
-    return(head(df))
-    
+    df <- read.csv(input$file$datapath, header = input$header)
+    df
+  })
+  
+  output$uploads <- renderTable({
+    req(input$file)
+    return(head(my_data()))
   })
   
   # Updating column selection
   observe({
     req(input$file)
-    f <- read.csv(input$file$datapath,
-              header = input$header)
-    vars <- names(f)
+    vars <- names(my_data())
     updateSelectInput(session, "idcol", choices = vars)
+    updateSelectInput(session, "xcol", choices = vars)
     updateSelectInput(session, "zcol", choices = vars)
     updateSelectInput(session, "ycol", choices = vars)
   })
   
   ##########
   
+  # Filtered table object
+  filtered <- reactive({
+    req(input$file, input$ycol, input$zcol, input$xcol)
+    df_clean <- subset(my_data(), select = c(input$ycol, input$zcol, input$xcol))
+    df_clean
+  })
+  
+  # Filtered table display
+  output$filteredtable <- renderTable({
+    req(input$file, input$ycol, input$zcol, input$xcol)
+    return(head(filtered()))
+  })
+  
+  ##########
+  
   output$postplot <- renderPlot({
+    
+    input$showplot  
+    req(input$file, input$ycol, input$zcol, input$xcol)
     
     tryCatch(
       {
-        fit1 <- bartc(response = df[, input$ycol], treatment = df[, input$zcol], 
-                      confounders = df[, c(-input$ycol, -input$zcol)], data = df, 
-                      method.rsp = input$rspmethod, method.trt = input$trtmethod, 
-                      estimand = input$estimand, commonSup.rule = input$csrule, 
-                      commonSup.cut = input$cscut,
-                      propensityScoreAsCovariate = input$pscoreas)
-        plot_sigma(fit1)
-        plot_support(fit1)
+        # Update dataset based on selections
+        
+        fit1 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
+                      confounders = as.matrix(filtered()[, c(-1, -2)])
+#                      ,
+#                      method.rsp = input$rspmethod, method.trt = input$trtmethod, 
+#                      estimand = input$estimand, commonSup.rule = input$csrule, 
+#                      commonSup.cut = input$cscut,
+#                      propensityScoreAsCovariate = input$pscoreas
+                      )
+#        plot_sigma(fit1)
+#        plot_support(fit1)
         plot_est(fit1)
       },
       error = function(e) {
