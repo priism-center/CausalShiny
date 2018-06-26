@@ -59,7 +59,7 @@ ui <- fluidPage(
                         sidebarPanel(
                           
                           # Input: file
-                          fileInput("file", "Choose CSV File",
+                          fileInput("file", "Choose File",
                                     multiple = FALSE,
                                     accept = c("text/csv",
                                                "text/comma-separated-values,text/plain",
@@ -70,19 +70,27 @@ ui <- fluidPage(
                           # Input: header
                           checkboxInput("header", "Header", TRUE),
                           
+                          hr(),
+                          
                           # Input: ID Column
                           checkboxInput("id", "Subject ID column?", FALSE), 
                           
                           conditionalPanel(
                             condition = "input.id",
-                            numericInput("idcol", "Subject ID Column Number", value = 1)
+                            selectInput("idcol", "Subject ID Column", choices = NULL)
                           ),
                           
                           hr(),
                           
-                          # Input: Y Column and Z column
-                          numericInput("zcol", "Treatment (Y) Column Number", value = 2),
-                          numericInput("ycol", "Response (Z) Column Number", value = 3)
+                          # Input: Y Column and Z column (DELETE IF THE NEW ONE WORKS)
+                          #numericInput("zcol", "Treatment (Y) Column Number", value = 2),
+                          #numericInput("ycol", "Response (Z) Column Number", value = 3),
+                          
+                          # NEW INTERFACE FOR Y AND Z SELECTION
+                          selectInput("ycol", "Select Response (Y) Column", choices = NULL),
+                          selectInput("zcol", "Select Treatment (Z) Column", choices = NULL)
+                          ##########
+                          
                         ),
                         
                         # Main Panel
@@ -105,10 +113,10 @@ ui <- fluidPage(
                           
                           # Input: Select Estimand
                           radioButtons("estimand", "Select Estimand",
-                                       choices = c(ATE = "ATE",
-                                                   ATT = "ATT",
-                                                   ATC = "ATC"),
-                                       selected = "ATE"),
+                                       choices = c(ATE = "ate",
+                                                   ATT = "att",
+                                                   ATC = "atc"),
+                                       selected = "ate"),
                           
                           hr(),
                           
@@ -181,7 +189,7 @@ ui <- fluidPage(
 
 
 #########################################
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   output$uploads <- renderTable({
     
@@ -202,6 +210,19 @@ server <- function(input, output) {
     return(head(df))
     
   })
+  
+  # Updating column selection
+  observe({
+    req(input$file)
+    f <- read.csv(input$file$datapath,
+              header = input$header)
+    vars <- names(f)
+    updateSelectInput(session, "idcol", choices = vars)
+    updateSelectInput(session, "zcol", choices = vars)
+    updateSelectInput(session, "ycol", choices = vars)
+  })
+  
+  ##########
   
   output$postplot <- renderPlot({
     
