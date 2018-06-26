@@ -162,10 +162,10 @@ ui <- fluidPage(
                           
                           #Input: Add common support cut
                           radioButtons("cscut", "Select Common Support Cut",
-                                       choices = c("NA real" = "NA_real_",
+                                       choices = c("NA real" = NA_real_,
                                                    "1" = 1,
                                                    "0.05" = 0.05),
-                                       selected = "NA_real_"),
+                                       selected = NA_real_),
                           
                           # Action Button for plotting
                           actionButton("showplot", "Plot")
@@ -177,7 +177,9 @@ ui <- fluidPage(
                         mainPanel(
                           
                           # Output: plots
+                          h4("Filtered Table"),
                           tableOutput("filteredtable"),
+                          h4("Plots"),
                           plotOutput("postplot")
                         )
                       )
@@ -242,9 +244,10 @@ server <- function(input, output, session) {
         
         fit1 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
                       confounders = as.matrix(filtered()[, c(-1, -2)])
+                      , estimand = input$estimand, method.rsp = input$rspmethod
 #                      ,
-#                      method.rsp = input$rspmethod, method.trt = input$trtmethod, 
-#                      estimand = input$estimand, commonSup.rule = input$csrule, 
+#                      , method.trt = input$trtmethod, 
+#                      commonSup.rule = input$csrule, 
 #                      commonSup.cut = input$cscut,
 #                      propensityScoreAsCovariate = input$pscoreas
                       )
