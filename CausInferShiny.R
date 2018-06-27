@@ -161,11 +161,27 @@ ui <- fluidPage(
                           hr(),
                           
                           #Input: Add common support cut
+                          ########## should be a conditional panel???
                           radioButtons("cscut", "Select Common Support Cut",
                                        choices = c("NA real" = NA_real_,
                                                    "1" = 1,
                                                    "0.05" = 0.05),
                                        selected = NA_real_),
+                          
+                          hr(), 
+                          
+                          # Input: plots to show (plot_sigma, plot_est)
+                          checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
+                          
+                          checkboxInput("plotest", "Traceplot", FALSE),  
+                          
+                          # Input: plot common support
+                          checkboxInput("plotsup", "Plot Common Support", FALSE), 
+                          conditionalPanel(
+                            condition = "input.plotsup",
+                            numericInput("xvar", "X Variable", 1, 
+                                         min = 1, max = 10)),
+                          
                           
                           # Action Button for plotting
                           actionButton("showplot", "Plot")
@@ -178,7 +194,9 @@ ui <- fluidPage(
                           
                           # Output: plots
                           h4("Filtered Table"),
-                          tableOutput("filteredtable")
+                          tableOutput("filteredtable"),
+                          h4("Plots"),
+                          plotOutput("postplot")
                       )
                   )
              ),
@@ -208,8 +226,8 @@ ui <- fluidPage(
                       # Main Panel
                       mainPanel(
                         
-                        h4("Plots"),
-                        plotOutput("postplot")
+                        h4("Individual Plots"),
+                        plotOutput("indplots")
                       )
                   )
              )
@@ -273,9 +291,9 @@ server <- function(input, output, session) {
         fit1 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
                       confounders = as.matrix(filtered()[, c(-1, -2)]), 
                       estimand = input$estimand, method.rsp = input$rspmethod,
-                      method.trt = input$trtmethod, commonSup.rule = input$csrule
-#                     , commonSup.cut = input$cscut,
-#                      propensityScoreAsCovariate = input$pscoreas
+                      method.trt = input$trtmethod, commonSup.rule = input$csrule,
+                      commonSup.cut = input$cscut
+#                      p.scoreAsCovariate = input$pscoreas
                       )
 #        plot_sigma(fit1)
 #        plot_support(fit1)
@@ -285,6 +303,12 @@ server <- function(input, output, session) {
         stop(safeError(e))
       }
     )
+    
+  })
+  
+  # Individual plots
+  output$indplots <- renderPlot({
+    
     
   })
   
