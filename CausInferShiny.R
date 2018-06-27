@@ -8,18 +8,18 @@ ui <- fluidPage(
   navbarPage("Causal Inference",
              
              # Tab Panel 1
-             tabPanel("Panel1 - Introduction", 
+             tabPanel("Introduction", 
                       
-                      # Sidebar Layout
-                      sidebarLayout(
+                  # Sidebar Layout
+                  sidebarLayout(
                         
-                        # Sidebar Panel
-                        sidebarPanel(
+                      # Sidebar Panel
+                      sidebarPanel(
                           
                           # Text
                           h3("Introduction"),
                           p("This RShiny application aims to simplify the process of conducting Causal Inference.")
-                        ),
+                      ),
                         
                         # Main Panel
                         mainPanel(
@@ -45,12 +45,12 @@ ui <- fluidPage(
                             a("treatSens", href = "https://cran.r-project.org/web/packages/treatSens/index.html"))
                           
                           
-                          )
-                          )
-                      ),
+                        )
+                   )
+              ),
              
              # Tab Panel 2
-             tabPanel("Panel2 - Upload", 
+             tabPanel("Upload", 
                       
                       # Sidebar Layout
                       sidebarLayout(
@@ -88,25 +88,25 @@ ui <- fluidPage(
                           selectInput("ycol", "Select Response (Y) Column", choices = NULL),
                           selectInput("zcol", "Select Treatment (Z) Column", choices = NULL)
                           
-                        ),
+                      ),
                         
                         # Main Panel
                         mainPanel(
                           
-                          # Output: Data file ----
+                          # Output: Data file
                           tableOutput("uploads")
-                        )
                       )
+                  )
              ),
              
              # Tab Panel 3
-             tabPanel("Panel3 - Options", 
+             tabPanel("Fitting Options", 
                       
-                      # Sidebar layout with input and output definitions ----
-                      sidebarLayout(
+                  # Sidebar layout
+                  sidebarLayout(
                         
-                        # Sidebar Panel
-                        sidebarPanel(
+                      # Sidebar Panel
+                      sidebarPanel(
                           
                           # Input: Select Estimand
                           radioButtons("estimand", "Select Estimand",
@@ -170,7 +170,7 @@ ui <- fluidPage(
                           # Action Button for plotting
                           actionButton("showplot", "Plot")
                           
-                        ),
+                      ),
                         
                         
                         # Main Panel
@@ -178,16 +178,44 @@ ui <- fluidPage(
                           
                           # Output: plots
                           h4("Filtered Table"),
-                          tableOutput("filteredtable"),
-                          h4("Plots"),
-                          plotOutput("postplot")
-                        )
+                          tableOutput("filteredtable")
                       )
+                  )
+             ),
+             
+             # Tab Panel 4
+             tabPanel("Plots",
+                      
+                  # Sidebar layout
+                  sidebarLayout(
+                        
+                      # Sidebar Panel
+                      sidebarPanel(
+                        
+                        # Input: plots to show (plot_sigma, plot_est)
+                        checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
+                        
+                        checkboxInput("plotest", "Traceplot", FALSE),  
+                        
+                        # Input: plot common support
+                        checkboxInput("plotsup", "Plot Common Support", FALSE), 
+                        conditionalPanel(
+                          condition = "input.plotsup",
+                          numericInput("xvar", "X Variable", 1, 
+                                       min = 1, max = 10))
+                      ),
+                      
+                      # Main Panel
+                      mainPanel(
+                        
+                        h4("Plots"),
+                        plotOutput("postplot")
+                      )
+                  )
              )
              
   )
   )
-
 
 
 
@@ -214,6 +242,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "xcol", choices = vars)
     updateSelectInput(session, "zcol", choices = vars)
     updateSelectInput(session, "ycol", choices = vars)
+    updateNumericInput(session, "xvar", max = ncol(my_data()))
   })
   
   ##########
@@ -234,7 +263,6 @@ server <- function(input, output, session) {
   ##########
   
   output$postplot <- renderPlot({
-    
     input$showplot  
     req(input$file, input$ycol, input$zcol, input$xcol)
     
@@ -243,12 +271,10 @@ server <- function(input, output, session) {
         # Update dataset based on selections
         
         fit1 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
-                      confounders = as.matrix(filtered()[, c(-1, -2)])
-                      , estimand = input$estimand, method.rsp = input$rspmethod
-#                      ,
-#                      , method.trt = input$trtmethod, 
-#                      commonSup.rule = input$csrule, 
-#                      commonSup.cut = input$cscut,
+                      confounders = as.matrix(filtered()[, c(-1, -2)]), 
+                      estimand = input$estimand, method.rsp = input$rspmethod,
+                      method.trt = input$trtmethod, commonSup.rule = input$csrule
+#                     , commonSup.cut = input$cscut,
 #                      propensityScoreAsCovariate = input$pscoreas
                       )
 #        plot_sigma(fit1)
