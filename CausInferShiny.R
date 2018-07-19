@@ -31,8 +31,8 @@ ui <- fluidPage(
                             options through the interface to get live results."),
                           br(),
                           h4("Step 1."),
-                          p("Trim dataset so it only includes confounders (X), treatment (Y), 
-                            response (Z), and ID column (optional)."),
+                          p("Trim dataset so it only includes confounders (X), treatment (Z), 
+                            response (Y), and ID column (optional)."),
                           h4("Step 2."),
                           p("Convert and save dataset into .csv file."),
                           h4("Step 3."),
@@ -51,7 +51,7 @@ ui <- fluidPage(
               ),
              
              # Tab Panel 2
-             tabPanel("Upload", 
+             tabPanel("Upload Data", 
                       
                       # Sidebar Layout
                       sidebarLayout(
@@ -83,11 +83,19 @@ ui <- fluidPage(
                           
                           hr(),
                           
-                          # Column Selection for X, Y, and Z
+                          # Column Selection for X and Y
                           selectInput("xcol", "Select Covariates (X) Columns", 
                                       choices = NULL, multiple = TRUE),
                           selectInput("ycol", "Select Response (Y) Column", choices = NULL),
-                          selectInput("zcol", "Select Treatment (Z) Column", choices = NULL)
+                          
+                          # Column Selection for Z, and identify treatment
+                          selectInput("zcol", "Select Treatment (Z) Column", choices = NULL),
+                          
+                          conditionalPanel(
+                            condition = "input.zcol",
+                            selectInput("trt.ind", "Select the Value Representing Receiving Treatment", 
+                                        choices = NULL)
+                          )
                           
                       ),
                         
@@ -95,13 +103,17 @@ ui <- fluidPage(
                         mainPanel(
                           
                           # Output: Data file
+                          h4("Status"),
+                          textOutput("uploadconfirm"),
+                          hr(),
+                          h4("Data"),
                           tableOutput("uploads")
                       )
                   )
              ),
              
              # Tab Panel 3
-             tabPanel("Fitting Options", 
+             tabPanel("Select Estimand", 
                       
                   # Sidebar layout
                   sidebarLayout(
@@ -114,9 +126,37 @@ ui <- fluidPage(
                                        choices = c("ATE" = "ate",
                                                    "ATT" = "att",
                                                    "ATC" = "atc"),
-                                       selected = "ate"),
+                                       selected = "ate")
+                      ),
+                      
+                      # Main Panel
+                      mainPanel(
                           
-                          hr(),
+                        # Output: plots
+                        h4("Filtered Table"),
+                        tableOutput("filteredtable")
+                      )
+                  )
+              ),
+             
+             
+             # Tab Panel 4
+             tabPanel("Advanced Options", 
+                      
+                  # Sidebar layout
+                  sidebarLayout(
+                        
+                      # Sidebar Panel
+                      sidebarPanel(
+                          
+                          # Input: Select Estimand
+                          #radioButtons("estimand", "Select Estimand",
+                          #             choices = c("ATE" = "ate",
+                          #                         "ATT" = "att",
+                          #                         "ATC" = "atc"),
+                          #             selected = "ate"),
+                          #
+                          #hr(),
                           
                           # Input: Survey Weights
                           checkboxInput("sweight", "Survey Weights", FALSE),
@@ -196,7 +236,7 @@ ui <- fluidPage(
                           
                           # Output: plots
                           h4("Filtered Table"),
-                          tableOutput("filteredtable"),
+                          tableOutput("filteredtable2"),
                           h4("Trace Plots"),
                           plotOutput("sigmaplot"),
                           plotOutput("estplot")
@@ -208,7 +248,7 @@ ui <- fluidPage(
                   )
              ),
              
-             # Tab Panel 4
+             # Tab Panel 5
              tabPanel("Plots",
                       
                   # Sidebar layout
@@ -253,11 +293,47 @@ server <- function(input, output, session) {
     df
   })
   
+  # Upload Data tab outputs
   output$uploads <- renderTable({
     req(input$file)
     return(head(my_data()))
   })
   
+  output$uploadconfirm <- renderText({
+    
+    ##########
+    datacheck <- function(data, confound, trt, resp) {
+      if (is.null(data)) {
+        "Please Upload a dataset"
+      }
+      
+      else {
+        
+        if (is.null(confound) || trt == "" || resp == "") {
+          "Please identify X, Y, Z"
+        }
+        
+        else {
+          
+          if (length(unique(my_data()[, which(names(my_data()) == trt)])) > 2) {
+            "Please check treatment variable selection, and/or missing values"
+          }
+          
+          else {
+            NULL
+          }
+        }
+      }
+    }
+    
+    validate(
+      datacheck(input$file, input$xcol, input$zcol, input$ycol)
+    )
+    ##########
+    paste("Upload complete, proceed to next tab")
+  })
+
+    
   # Updating column selection
   observe({
     req(input$file)
@@ -278,8 +354,19 @@ server <- function(input, output, session) {
     df_clean
   })
   
+  observe({
+    req(filtered())
+    trtvalues <- unique(filtered()[, 2])
+    updateSelectInput(session, "trt.ind", choices = trtvalues)
+  })
+  
   # Filtered table display
   output$filteredtable <- renderTable({
+    req(filtered())
+    return(head(filtered()))
+  })
+  
+  output$filteredtable2 <- renderTable({
     req(filtered())
     return(head(filtered()))
   })
