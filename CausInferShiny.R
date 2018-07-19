@@ -1,5 +1,6 @@
 library(shiny)
 library(bartCause)
+library(treatSens)
 
 ########################################
 ui <- fluidPage(
@@ -145,7 +146,7 @@ ui <- fluidPage(
                           #Input: Add method for fitting response surface
                           radioButtons("rspmethod", "Select Method for Response Surface",
                                        choices = c("bart" = "bart",
-                                                   "pweight" = "pweight",
+                                                   "pweight" = "p.weight",
                                                    "tmle" = "tmle"),
                                        selected = "bart"),
                           
@@ -160,13 +161,14 @@ ui <- fluidPage(
                           
                           hr(),
                           
-                          #Input: Add common support cut
-                          ########## should be a conditional panel???
-                          radioButtons("cscut", "Select Common Support Cut",
-                                       choices = c("NA real" = NA_real_,
-                                                   "1" = 1,
-                                                   "0.05" = 0.05),
-                                       selected = NA_real_),
+                            #Input: Add common support cut
+                            conditionalPanel(
+                              condition = "input.csrule != 'none'",
+                              radioButtons("cscut", "Select Common Support Cut",
+                                           choices = c("NA real" = NA_real_,
+                                                       "1" = 1,
+                                                       "0.05" = 0.05),
+                                           selected = NA_real_)),
                           
                           hr(), 
                           
@@ -195,8 +197,13 @@ ui <- fluidPage(
                           # Output: plots
                           h4("Filtered Table"),
                           tableOutput("filteredtable"),
-                          h4("Plots"),
-                          plotOutput("postplot")
+                          h4("Trace Plots"),
+                          plotOutput("sigmaplot"),
+                          plotOutput("estplot")
+                          ######
+                          ,
+                          verbatimTextOutput("summary")
+                          ######
                       )
                   )
              ),
@@ -225,9 +232,8 @@ ui <- fluidPage(
                       
                       # Main Panel
                       mainPanel(
-                        
-                        h4("Individual Plots"),
-                        plotOutput("indplots")
+                        h4("Plots"),
+                        plotOutput("indivplot")
                       )
                   )
              )
@@ -274,41 +280,48 @@ server <- function(input, output, session) {
   
   # Filtered table display
   output$filteredtable <- renderTable({
-    req(input$file, input$ycol, input$zcol, input$xcol)
+    req(filtered())
     return(head(filtered()))
   })
   
+  # Running bartc function to store fit
+  fit <- reactive({
+    req(filtered)
+    fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
+                  confounders = as.matrix(filtered()[, c(-1, -2)]), 
+                  estimand = input$estimand, method.rsp = input$rspmethod,
+                  method.trt = input$trtmethod, commonSup.rule = input$csrule
+#                  ,commonSup.cut = input$cscut
+#                  ,p.scoreAsCovariate = input$pscoreas
+                  )
+    fit0
+  })
+  
+  # Summary output
+  output$summary <- renderPrint({
+    req(fit())
+    summary(fit())
+  })
+  
+  
   ##########
   
-  output$postplot <- renderPlot({
+  # plot_sigma
+  output$sigmaplot <- renderPlot({
     input$showplot  
-    req(input$file, input$ycol, input$zcol, input$xcol)
-    
-    tryCatch(
-      {
-        # Update dataset based on selections
-        
-        fit1 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
-                      confounders = as.matrix(filtered()[, c(-1, -2)]), 
-                      estimand = input$estimand, method.rsp = input$rspmethod,
-                      method.trt = input$trtmethod, commonSup.rule = input$csrule,
-                      commonSup.cut = input$cscut
-#                      p.scoreAsCovariate = input$pscoreas
-                      )
-#        plot_sigma(fit1)
-#        plot_support(fit1)
-        plot_est(fit1)
-      },
-      error = function(e) {
-        stop(safeError(e))
-      }
-    )
-    
+    req(fit())
+    plot_sigma(fit())
+  })
+  
+  # plot_est
+  output$estplot <- renderPlot({
+    input$showplot  
+    req(fit())
+    plot_est(fit())
   })
   
   # Individual plots
   output$indplots <- renderPlot({
-    
     
   })
   
