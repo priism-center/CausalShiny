@@ -149,14 +149,33 @@ ui <- fluidPage(
                       # Sidebar Panel
                       sidebarPanel(
                           
-                          # Input: Select Estimand
-                          #radioButtons("estimand", "Select Estimand",
-                          #             choices = c("ATE" = "ate",
-                          #                         "ATT" = "att",
-                          #                         "ATC" = "atc"),
-                          #             selected = "ate"),
-                          #
-                          #hr(),
+                          ############ new structure
+                          # Input: Model Propensity Score
+                          checkboxInput("pscheck", "Model Propensity Score?", TRUE),
+                          hr(),
+                          
+                          conditionalPanel(
+                            condition = "input.pscheck",
+                            radioButtons("trtmethod", "How to include P-Score?",
+                                         choices = c("none" = "none",
+                                                     "glm" = "glm",
+                                                     "bart" = "bart",
+                                                     "bart.xval" = "bart.xval"),
+                                         selected = "none")
+                          ),
+                          hr(),
+                          
+                          conditionalPanel(
+                            condition = "input.pscheck",
+                            radioButtons("pscoreas", "Propensity Score as?",
+                                         choices = c("Covariate" = FALSE,
+                                                     "Weight" = TRUE),
+                                         selected = FALSE)
+                          ),
+                          
+                          
+                          ############
+                          
                           
                           # Input: Survey Weights
                           checkboxInput("sweight", "Survey Weights", FALSE),
