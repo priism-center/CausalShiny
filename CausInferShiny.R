@@ -27,21 +27,25 @@ ui <- fluidPage(
                           
                           # Text
                           h1("Instructions", align = "center"),
-                          p("Bypassing coding, this application allows the users to simply select different
-                            options through the interface to get live results."),
-                          br(),
-                          h4("Step 1."),
-                          p("Trim dataset so it only includes confounders (X), treatment (Z), 
+                          p("This application allows the users to explore different options through
+                             the interface and get live results."),
+                          hr(),
+                          h4("Step 1. Upload data"),
+                          p("Upload data and identify confounders (X), treatment (Z), 
                             response (Y), and ID column (optional)."),
-                          h4("Step 2."),
-                          p("Convert and save dataset into .csv file."),
-                          h4("Step 3."),
-                          p("Click Upload panel on top of the page and choose the file path to upload dataset. 
-                            Specify the column number of ID column (if applicable), treatment column (Y), 
-                            and response column (Z)."),
-                          h4("Step 4."),
-                          p("Use Option panel to select method of analysis."),
-                          h3("R Packages Used"),
+                          h4("Step 2. Select estimand"),
+                          p("Specify treatment effect type."),
+                          h4("Step 3. Advanced options"),
+                          h5("Model propensity score?"),
+                          p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
+                          p("(2). How to include propensity score? (as weight or as covariate)"),
+                          p("(3). Use TMLE adjustment?"),
+                          h4("Step 4. Check for common support"),
+                          p("Common support plot"),
+                          h4("Step 5. Convergence diagnostics"),
+                          p("Trace plots"),
+                          hr(),
+                          h4("R Packages Used"),
                           p(a("BARTCause", href = "https://github.com/vdorie/bartCause"), " and ",
                             a("treatSens", href = "https://cran.r-project.org/web/packages/treatSens/index.html"))
                           
@@ -179,13 +183,14 @@ ui <- fluidPage(
                             checkboxInput("tmleadjust", "TMLE Adjustment?", FALSE)
                           )
                           
-                            #Input: Add method for fitting response surface
-                            ,radioButtons("rspmethod", "Select Method for Response Surface",
-                                         choices = c("bart" = "bart",
-                                                     "pweight" = "p.weight",
-                                                     "tmle" = "tmle"),
-                                         selected = "bart")
-                          
+
+                          #  #Input: Add method for fitting response surface
+                          #  ,radioButtons("rspmethod", "Select Method for Response Surface",
+                          #               choices = c("bart" = "bart",
+                          #                           "pweight" = "p.weight",
+                          #                           "tmle" = "tmle"),
+                          #               selected = "bart")
+                          #
                           ),
                           
                           ############
@@ -439,13 +444,15 @@ server <- function(input, output, session) {
     req(filtered)
     
     # Translating fit input and recode variables
-    
-    
+    if (input$tmleadjust) {
+      rspmethod <- "tmle"
+    }
+    else NULL
     
     
     fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
                   confounders = as.matrix(filtered()[, c(-1, -2)]), 
-                  estimand = input$estimand, method.rsp = input$rspmethod,
+                  estimand = input$estimand, method.rsp = rspmethod,
                   method.trt = input$trtmethod, commonSup.rule = input$csrule
 #                  ,commonSup.cut = input$cscut
 #                  ,p.scoreAsCovariate = input$pscoreas
