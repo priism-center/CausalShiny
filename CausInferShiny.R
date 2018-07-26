@@ -180,17 +180,7 @@ ui <- fluidPage(
                           conditionalPanel(
                             condition = "input.pscheck",
                             checkboxInput("tmleadjust", "TMLE Adjustment?", FALSE)
-                          )
-                          
-
-                          #  #Input: Add method for fitting response surface
-                          #  ,radioButtons("rspmethod", "Select Method for Response Surface",
-                          #               choices = c("bart" = "bart",
-                          #                           "pweight" = "p.weight",
-                          #                           "tmle" = "tmle"),
-                          #               selected = "bart")
-                          #
-                          ),
+                          )),
                           
                           ############
                           
@@ -198,37 +188,6 @@ ui <- fluidPage(
                           # Input: Survey Weights
                           #checkboxInput("sweight", "Survey Weights", FALSE),
                           
-                          # Input: Add Propensity Score
-                          #checkboxInput("pscore", "Add Propensity Score", FALSE),
-                          
-                        #  
-                        #  #Input: Add method for fitting treatment assignment mechanism
-                        #  radioButtons("trtmethod", "Select Method for Treatment Assignment Mechanism",
-                        #               choices = c("none" = "none",
-                        #                           "glm" = "glm",
-                        #                           "bart" = "bart",
-                        #                           "bart.xval" = "bart.xval"),
-                        #               selected = "none"),
-                        #  
-                        #  hr(),
-                        #  
-                        #  #Input: Add method for fitting response surface
-                        #  radioButtons("rspmethod", "Select Method for Response Surface",
-                        #               choices = c("bart" = "bart",
-                        #                           "pweight" = "p.weight",
-                        #                           "tmle" = "tmle"),
-                        #               selected = "bart"),
-                        #  
-                        #  hr(),
-                        #  
-                        #  #Input: Add common support rule
-                        #  radioButtons("csrule", "Select Common Support Rule",
-                        #               choices = c("none" = "none",
-                        #                           "sd" = "sd",
-                        #                           "chisq" = "chisq"),
-                        #               selected = "none"),
-                        #  
-                        #  hr(),
                         #  
                         #    #Input: Add common support cut
                         #    conditionalPanel(
@@ -238,28 +197,7 @@ ui <- fluidPage(
                         #                               "1" = 1,
                         #                               "0.05" = 0.05),
                         #                   selected = NA_real_)),
-                        #  
-                        #  hr(), 
-                        #  
-                        #  # Input: plots to show (plot_sigma, plot_est)
-                        #  checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
-                        #  
-                        #  checkboxInput("plotest", "Traceplot", FALSE),  
-                        #  
-                        #  # Input: plot common support
-                        #  checkboxInput("plotsup", "Plot Common Support", FALSE), 
-                        #  conditionalPanel(
-                        #    condition = "input.plotsup",
-                        #    numericInput("xvar", "X Variable", 1, 
-                        #                 min = 1, max = 10)),
-                        #  
-                        #  
-                        #  # Action Button for plotting
-                        #  actionButton("showplot", "Plot")
-                        #  
-                      #),
-                        
-                        
+                       
                         # Main Panel
                         mainPanel(
                           
@@ -320,9 +258,9 @@ ui <- fluidPage(
                         sidebarPanel(
                           
                           # Input: plots to show (plot_sigma, plot_est)
-                          checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
+                          checkboxInput("plotsigma", "Traceplot Sigma", TRUE),
                           
-                          checkboxInput("plotest", "Traceplot", FALSE)  
+                          checkboxInput("plotest", "Traceplot", TRUE)  
                         ),
                         
                         # Main Panel
@@ -488,7 +426,7 @@ server <- function(input, output, session) {
       NULL
       print("Common Support rule not specified, unable to plot")
     }
-    else plot_est(fit())
+    else plot_support(fit())
   })
   
   
