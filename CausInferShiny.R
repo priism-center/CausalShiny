@@ -161,20 +161,19 @@ ui <- fluidPage(
                           conditionalPanel(
                             condition = "input.pscheck",
                             radioButtons("trtmethod", "How to include P-Score?",
-                                         choices = c("none" = "none",
-                                                     "glm" = "glm",
+                                         choices = c("glm" = "glm",
                                                      "bart" = "bart",
                                                      "bart.xval" = "bart.xval"),
-                                         selected = "none")
+                                         selected = "glm")
                           ),
                           hr(),
                           
                           conditionalPanel(
                             condition = "input.pscheck",
                             radioButtons("pscorebool", "Propensity Score as?",
-                                         choices = c("Covariate" = FALSE,
-                                                     "Weight" = TRUE),
-                                         selected = FALSE)
+                                         choices = c("Covariate" = "cov",
+                                                     "Weight" = "wgt"),
+                                         selected = "cov")
                           ),
                           hr(),
                           
@@ -202,14 +201,6 @@ ui <- fluidPage(
                           # Input: Add Propensity Score
                           #checkboxInput("pscore", "Add Propensity Score", FALSE),
                           
-                          #conditionalPanel(
-                          #  condition = "input.pscore",
-                          #  radioButtons("pscoreas", "Propensity Score",
-                          #               choices = c("As Covariate" = FALSE,
-                          #                           "As Weight" = TRUE),
-                          #               selected = FALSE)),
-                          #
-                          #hr(),
                         #  
                         #  #Input: Add method for fitting treatment assignment mechanism
                         #  radioButtons("trtmethod", "Select Method for Treatment Assignment Mechanism",
@@ -439,20 +430,29 @@ server <- function(input, output, session) {
     return(head(filtered()))
   })
   
+  # Translating fit input and recode variables
+  rspmethod <- reactive({
+    req(filtered())
+
+    if (!input$pscheck) {
+      "bart"
+    }
+    else if (input$tmleadjust) {
+      "tmle"
+    }
+    else if (input$pscorebool == "wgt") {
+      "p.weight"
+    }
+    else "bart"
+  })
+  
   # Running bartc function to store fit
   fit <- reactive({
-    req(filtered)
-    
-    # Translating fit input and recode variables
-    if (input$tmleadjust) {
-      rspmethod <- "tmle"
-    }
-    else NULL
-    
+    req(filtered())
     
     fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
                   confounders = as.matrix(filtered()[, c(-1, -2)]), 
-                  estimand = input$estimand, method.rsp = rspmethod,
+                  estimand = input$estimand, method.rsp = rspmethod(),
                   method.trt = input$trtmethod, commonSup.rule = input$csrule
 #                  ,commonSup.cut = input$cscut
 #                  ,p.scoreAsCovariate = input$pscoreas
