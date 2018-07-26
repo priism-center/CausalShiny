@@ -167,87 +167,101 @@ ui <- fluidPage(
                           
                           conditionalPanel(
                             condition = "input.pscheck",
-                            radioButtons("pscoreas", "Propensity Score as?",
+                            radioButtons("pscorebool", "Propensity Score as?",
                                          choices = c("Covariate" = FALSE,
                                                      "Weight" = TRUE),
                                          selected = FALSE)
                           ),
+                          hr(),
                           
+                          conditionalPanel(
+                            condition = "input.pscheck",
+                            checkboxInput("tmleadjust", "TMLE Adjustment?", FALSE)
+                          )
+                          
+                            #Input: Add method for fitting response surface
+                            ,radioButtons("rspmethod", "Select Method for Response Surface",
+                                         choices = c("bart" = "bart",
+                                                     "pweight" = "p.weight",
+                                                     "tmle" = "tmle"),
+                                         selected = "bart")
+                          
+                          ),
                           
                           ############
                           
                           
                           # Input: Survey Weights
-                          checkboxInput("sweight", "Survey Weights", FALSE),
+                          #checkboxInput("sweight", "Survey Weights", FALSE),
                           
                           # Input: Add Propensity Score
-                          checkboxInput("pscore", "Add Propensity Score", FALSE),
+                          #checkboxInput("pscore", "Add Propensity Score", FALSE),
                           
-                          conditionalPanel(
-                            condition = "input.pscore",
-                            radioButtons("pscoreas", "Propensity Score",
-                                         choices = c("As Covariate" = FALSE,
-                                                     "As Weight" = TRUE),
-                                         selected = FALSE)),
-                          
-                          hr(),
-                          
-                          #Input: Add method for fitting treatment assignment mechanism
-                          radioButtons("trtmethod", "Select Method for Treatment Assignment Mechanism",
-                                       choices = c("none" = "none",
-                                                   "glm" = "glm",
-                                                   "bart" = "bart",
-                                                   "bart.xval" = "bart.xval"),
-                                       selected = "none"),
-                          
-                          hr(),
-                          
-                          #Input: Add method for fitting response surface
-                          radioButtons("rspmethod", "Select Method for Response Surface",
-                                       choices = c("bart" = "bart",
-                                                   "pweight" = "p.weight",
-                                                   "tmle" = "tmle"),
-                                       selected = "bart"),
-                          
-                          hr(),
-                          
-                          #Input: Add common support rule
-                          radioButtons("csrule", "Select Common Support Rule",
-                                       choices = c("none" = "none",
-                                                   "sd" = "sd",
-                                                   "chisq" = "chisq"),
-                                       selected = "none"),
-                          
-                          hr(),
-                          
-                            #Input: Add common support cut
-                            conditionalPanel(
-                              condition = "input.csrule != 'none'",
-                              radioButtons("cscut", "Select Common Support Cut",
-                                           choices = c("NA real" = NA_real_,
-                                                       "1" = 1,
-                                                       "0.05" = 0.05),
-                                           selected = NA_real_)),
-                          
-                          hr(), 
-                          
-                          # Input: plots to show (plot_sigma, plot_est)
-                          checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
-                          
-                          checkboxInput("plotest", "Traceplot", FALSE),  
-                          
-                          # Input: plot common support
-                          checkboxInput("plotsup", "Plot Common Support", FALSE), 
-                          conditionalPanel(
-                            condition = "input.plotsup",
-                            numericInput("xvar", "X Variable", 1, 
-                                         min = 1, max = 10)),
-                          
-                          
-                          # Action Button for plotting
-                          actionButton("showplot", "Plot")
-                          
-                      ),
+                          #conditionalPanel(
+                          #  condition = "input.pscore",
+                          #  radioButtons("pscoreas", "Propensity Score",
+                          #               choices = c("As Covariate" = FALSE,
+                          #                           "As Weight" = TRUE),
+                          #               selected = FALSE)),
+                          #
+                          #hr(),
+                        #  
+                        #  #Input: Add method for fitting treatment assignment mechanism
+                        #  radioButtons("trtmethod", "Select Method for Treatment Assignment Mechanism",
+                        #               choices = c("none" = "none",
+                        #                           "glm" = "glm",
+                        #                           "bart" = "bart",
+                        #                           "bart.xval" = "bart.xval"),
+                        #               selected = "none"),
+                        #  
+                        #  hr(),
+                        #  
+                        #  #Input: Add method for fitting response surface
+                        #  radioButtons("rspmethod", "Select Method for Response Surface",
+                        #               choices = c("bart" = "bart",
+                        #                           "pweight" = "p.weight",
+                        #                           "tmle" = "tmle"),
+                        #               selected = "bart"),
+                        #  
+                        #  hr(),
+                        #  
+                        #  #Input: Add common support rule
+                        #  radioButtons("csrule", "Select Common Support Rule",
+                        #               choices = c("none" = "none",
+                        #                           "sd" = "sd",
+                        #                           "chisq" = "chisq"),
+                        #               selected = "none"),
+                        #  
+                        #  hr(),
+                        #  
+                        #    #Input: Add common support cut
+                        #    conditionalPanel(
+                        #      condition = "input.csrule != 'none'",
+                        #      radioButtons("cscut", "Select Common Support Cut",
+                        #                   choices = c("NA real" = NA_real_,
+                        #                               "1" = 1,
+                        #                               "0.05" = 0.05),
+                        #                   selected = NA_real_)),
+                        #  
+                        #  hr(), 
+                        #  
+                        #  # Input: plots to show (plot_sigma, plot_est)
+                        #  checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
+                        #  
+                        #  checkboxInput("plotest", "Traceplot", FALSE),  
+                        #  
+                        #  # Input: plot common support
+                        #  checkboxInput("plotsup", "Plot Common Support", FALSE), 
+                        #  conditionalPanel(
+                        #    condition = "input.plotsup",
+                        #    numericInput("xvar", "X Variable", 1, 
+                        #                 min = 1, max = 10)),
+                        #  
+                        #  
+                        #  # Action Button for plotting
+                        #  actionButton("showplot", "Plot")
+                        #  
+                      #),
                         
                         
                         # Main Panel
@@ -256,11 +270,11 @@ ui <- fluidPage(
                           # Output: plots
                           h4("Filtered Table"),
                           tableOutput("filteredtable2"),
-                          h4("Trace Plots"),
-                          plotOutput("sigmaplot"),
-                          plotOutput("estplot")
+                          #h4("Trace Plots"),
+                          #plotOutput("sigmaplot"),
+                          #plotOutput("estplot"),
                           ######
-                          ,
+                          
                           verbatimTextOutput("summary")
                           ######
                       )
@@ -268,7 +282,7 @@ ui <- fluidPage(
              ),
              
              # Tab Panel 5
-             tabPanel("Plots",
+             tabPanel("Common Support",
                       
                   # Sidebar layout
                   sidebarLayout(
@@ -276,15 +290,18 @@ ui <- fluidPage(
                       # Sidebar Panel
                       sidebarPanel(
                         
-                        # Input: plots to show (plot_sigma, plot_est)
-                        checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
-                        
-                        checkboxInput("plotest", "Traceplot", FALSE),  
+                        #Input: Add common support rule
+                        radioButtons("csrule", "Select Common Support Rule",
+                                    choices = c("none" = "none",
+                                                "sd" = "sd",
+                                                "chisq" = "chisq"),
+                                     selected = "sd"),
+                          
+                        hr(),
                         
                         # Input: plot common support
-                        checkboxInput("plotsup", "Plot Common Support", FALSE), 
                         conditionalPanel(
-                          condition = "input.plotsup",
+                          condition = "input.csrule != 'none'",
                           numericInput("xvar", "X Variable", 1, 
                                        min = 1, max = 10))
                       ),
@@ -292,13 +309,40 @@ ui <- fluidPage(
                       # Main Panel
                       mainPanel(
                         h4("Plots"),
-                        plotOutput("indivplot")
+                        plotOutput("csplot")
                       )
                   )
+             ),
+             
+             # Tab Panel 6
+             tabPanel("Trace Plots",
+                      
+                      # Sidebar layout
+                      sidebarLayout(
+                        
+                        # Sidebar Panel
+                        sidebarPanel(
+                          
+                          # Input: plots to show (plot_sigma, plot_est)
+                          checkboxInput("plotsigma", "Traceplot Sigma", FALSE),
+                          
+                          checkboxInput("plotest", "Traceplot", FALSE)  
+                        ),
+                        
+                        # Main Panel
+                        mainPanel(
+                          h4("Trace Plots"),
+                          h5("Sigma Plot"),
+                          plotOutput("sigmaplot"),
+                          h5("Estimation Plot"),
+                          plotOutput("estplot")
+                        )
+                      )
              )
              
   )
   )
+  
 
 
 
@@ -393,6 +437,12 @@ server <- function(input, output, session) {
   # Running bartc function to store fit
   fit <- reactive({
     req(filtered)
+    
+    # Translating fit input and recode variables
+    
+    
+    
+    
     fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
                   confounders = as.matrix(filtered()[, c(-1, -2)]), 
                   estimand = input$estimand, method.rsp = input$rspmethod,
@@ -414,17 +464,26 @@ server <- function(input, output, session) {
   
   # plot_sigma
   output$sigmaplot <- renderPlot({
-    input$showplot  
     req(fit())
     plot_sigma(fit())
   })
   
   # plot_est
   output$estplot <- renderPlot({
-    input$showplot  
     req(fit())
     plot_est(fit())
   })
+  
+  # plot_support
+  output$supplot <- renderPlot({
+    req(fit())
+    if (input.csrule == "none") {
+      NULL
+      print("Common Support rule not specified, unable to plot")
+    }
+    else plot_est(fit())
+  })
+  
   
   # Individual plots
   output$indplots <- renderPlot({
@@ -435,3 +494,6 @@ server <- function(input, output, session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+#testdata <- read.csv("/Users/George/Desktop/A3SR/Others/Causal_Inference_Shiny/experiment/simpletest.csv", header = T)
+#fit1 <- bartc(testdata$Outcome, testdata$Treatment, testdata[, 1:2], estimand = "ate")
