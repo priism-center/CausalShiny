@@ -95,10 +95,18 @@ ui <- fluidPage(
                           # Column Selection for Z, and identify treatment
                           selectInput("zcol", "Select Treatment (Z) Column", choices = NULL),
                           
-                          conditionalPanel(
-                            condition = "input.zcol",
+                          #conditionalPanel(
+                          #  condition = "input.zcol",
                             selectInput("trt.ind", "Select the Value Representing Receiving Treatment", 
-                                        choices = NULL)
+                                        choices = NULL),
+                          #)
+                          
+                          # Grouping Variable
+                          checkboxInput("gvarcheck", "Include Grouping Variable?", FALSE), 
+                          
+                          conditionalPanel(
+                            condition = "input.gvarcheck",
+                            selectInput("gvar", "Select Grouping Variable", choices = NULL)
                           )
                           
                       ),
@@ -170,7 +178,7 @@ ui <- fluidPage(
                           
                           conditionalPanel(
                             condition = "input.pscheck",
-                            radioButtons("pscorebool", "Propensity Score as?",
+                            radioButtons("pscoreas", "Propensity Score as?",
                                          choices = c("Covariate" = "cov",
                                                      "Weight" = "wgt"),
                                          selected = "cov")
@@ -202,11 +210,8 @@ ui <- fluidPage(
                         mainPanel(
                           
                           # Output: plots
-                          h4("Filtered Table"),
-                          tableOutput("filteredtable2"),
-                          #h4("Trace Plots"),
-                          #plotOutput("sigmaplot"),
-                          #plotOutput("estplot"),
+                          #h4("Filtered Table"),
+                          #tableOutput("filteredtable2"),
                           ######
                           
                           verbatimTextOutput("summary")
@@ -242,8 +247,8 @@ ui <- fluidPage(
                       
                       # Main Panel
                       mainPanel(
-                        h4("Plots"),
-                        plotOutput("csplot")
+                        h4("Common Support Plot"),
+                        plotOutput("supplot")
                       )
                   )
              ),
@@ -258,9 +263,7 @@ ui <- fluidPage(
                         sidebarPanel(
                           
                           # Input: plots to show (plot_sigma, plot_est)
-                          checkboxInput("plotsigma", "Traceplot Sigma", TRUE),
-                          
-                          checkboxInput("plotest", "Traceplot", TRUE)  
+                          h4("Trace Plots")
                         ),
                         
                         # Main Panel
@@ -339,22 +342,32 @@ server <- function(input, output, session) {
     updateSelectInput(session, "xcol", choices = vars)
     updateSelectInput(session, "zcol", choices = vars)
     updateSelectInput(session, "ycol", choices = vars)
+    updateSelectInput(session, "gvar", choices = vars)
     updateNumericInput(session, "xvar", max = ncol(my_data()))
   })
   
   ##########
   
-  # Filtered table object
-  filtered <- reactive({
+  # Intermediate Filtered table object with original coding
+  filtered_pre <- reactive({
     req(input$file, input$ycol, input$zcol, input$xcol)
     df_clean <- subset(my_data(), select = c(input$ycol, input$zcol, input$xcol))
     df_clean
   })
   
   observe({
-    req(filtered())
-    trtvalues <- unique(filtered()[, 2])
+    req(filtered_pre())
+    trtvalues <- unique(filtered_pre()[, 2])
     updateSelectInput(session, "trt.ind", choices = trtvalues)
+  })
+  
+  # Filtered table object
+  filtered <- reactive({
+    req(input$trt.ind)
+    data0 <- filtered_pre()
+    data0[which(data0[ ,2] == input$trt.ind), 2] <- as.integer(1)
+    data0[which(data0[ ,2] != input$trt.ind), 2] <- as.integer(0)
+    data0
   })
   
   # Filtered table display
@@ -362,12 +375,7 @@ server <- function(input, output, session) {
     req(filtered())
     return(head(filtered()))
   })
-  
-  output$filteredtable2 <- renderTable({
-    req(filtered())
-    return(head(filtered()))
-  })
-  
+
   # Translating fit input and recode variables
   rspmethod <- reactive({
     req(filtered())
@@ -378,7 +386,7 @@ server <- function(input, output, session) {
     else if (input$tmleadjust) {
       "tmle"
     }
-    else if (input$pscorebool == "wgt") {
+    else if (input$pscoreas == "wgt") {
       "p.weight"
     }
     else "bart"
@@ -391,9 +399,10 @@ server <- function(input, output, session) {
     fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
                   confounders = as.matrix(filtered()[, c(-1, -2)]), 
                   estimand = input$estimand, method.rsp = rspmethod(),
-                  method.trt = input$trtmethod, commonSup.rule = input$csrule
+                  method.trt = input$trtmethod, commonSup.rule = input$csrule,
+                  group.by = ifelse(input$gvarcheck, gvar, FALSE)
 #                  ,commonSup.cut = input$cscut
-#                  ,p.scoreAsCovariate = input$pscoreas
+#                  ,p.scoreAsCovariate = (input$pscoreas == "cov")
                   )
     fit0
   })
@@ -401,6 +410,15 @@ server <- function(input, output, session) {
   # Summary output
   output$summary <- renderPrint({
     req(fit())
+    progress <- Progress$new(session, min=1, max=10)
+    on.exit(progress$close())
+    
+    progress$set(message = 'Model fitting in progress')
+    
+    for (i in 1:10) {
+      progress$set(value = i)
+      Sys.sleep(0.5)
+    }
     summary(fit())
   })
   
@@ -422,7 +440,7 @@ server <- function(input, output, session) {
   # plot_support
   output$supplot <- renderPlot({
     req(fit())
-    if (input.csrule == "none") {
+    if (input$csrule == "none") {
       NULL
       print("Common Support rule not specified, unable to plot")
     }
