@@ -1,6 +1,9 @@
-library(shiny)
-library(bartCause)
-library(treatSens)
+require(shiny)
+require(bartCause)
+require(treatSens)
+require(foreign)
+require(readstata13)
+require(openxlsx)
 
 ########################################
 ui <- fluidPage(
@@ -26,7 +29,7 @@ ui <- fluidPage(
                         mainPanel(
                           
                           # Text
-                          h1("Instructions", align = "center"),
+                          h1("Instructions"),
                           p("This application allows the users to explore different options through
                              the interface and get live results."),
                           hr(),
@@ -63,12 +66,22 @@ ui <- fluidPage(
                         # Sidebar Panel
                         sidebarPanel(
                           
+                          # Input: file type
+                          selectInput("filetype", "Select File Type", 
+                                      choices = c("csv" = "csv", 
+                                                  "dta" = "dta",
+                                                  "xlsx" = "xlsx",
+                                                  "txt" = "txt",
+                                                  "spss" = "spss")),
+                          
                           # Input: file
                           fileInput("file", "Choose File",
                                     multiple = FALSE,
-                                    accept = c("text/csv",
-                                               "text/comma-separated-values,text/plain",
-                                               ".csv")),
+                                    accept = NULL
+                                    #  c("text/csv",
+                                    #           "text/comma-separated-values,text/plain",
+                                    #           ".csv")
+                                    ),
                           
                           hr(),
                           
@@ -117,6 +130,7 @@ ui <- fluidPage(
                           # Output: Data file
                           h4("Status"),
                           textOutput("uploadconfirm"),
+                          #textOutput("variableconfirm"),
                           hr(),
                           h4("Data"),
                           tableOutput("uploads")
@@ -235,14 +249,19 @@ ui <- fluidPage(
                                                 "sd" = "sd",
                                                 "chisq" = "chisq"),
                                      selected = "sd"),
+                        
+                        # Use prediction?
+                        checkboxInput("supportpredict", "Use prediction for 
+                                      common support plot?", TRUE)
+
                           
-                        hr(),
+                        #hr(),
                         
                         # Input: plot common support
-                        conditionalPanel(
-                          condition = "input.csrule != 'none'",
-                          numericInput("xvar", "X Variable", 1, 
-                                       min = 1, max = 10))
+                        #conditionalPanel(
+                        #  condition = "input.csrule != 'none'",
+                        #  numericInput("xvar", "X Variable", 1, 
+                        #               min = 1, max = 10))
                       ),
                       
                       # Main Panel
@@ -288,15 +307,34 @@ server <- function(input, output, session) {
   
   # Create global data object
   my_data <- reactive({
-    req(input$file)
-    df <- read.csv(input$file$datapath, header = input$header)
+    req(input$file, input$filetype)
+    if (input$filetype == "csv") {
+      df <- read.csv(input$file$datapath, header = input$header)
+    }
+    
+    else if (input$filetype == "dta") {
+      df <- read.dta13(input$file$datapath)
+    }
+    
+    else if (input$filetype == "xlsx") {
+      df <- read.xlsx(input$file$datapath, colNames = input$header)
+    }
+    
+    else if (input$filetype == "txt") {
+      df <- read.table(input$file$datapath, header = input$header)
+    }
+    
+    else if (input$filetype == "spss") {
+      df <- read.spss(input$file$datapath, to.data.frame = T)
+    }
+    
     df
   })
   
   # Upload Data tab outputs
   output$uploads <- renderTable({
     req(input$file)
-    return(head(my_data()))
+    return(head(my_data(), 20))
   })
   
   output$uploadconfirm <- renderText({
@@ -330,9 +368,30 @@ server <- function(input, output, session) {
       datacheck(input$file, input$xcol, input$zcol, input$ycol)
     )
     ##########
-    paste("Upload complete, proceed to next tab")
+    paste("Upload complete")
   })
-
+  
+  # Variable Confirmation
+  #output$variableconfirm <- renderText({
+  #  req(filtered)
+    #####
+  #  idcheck <- function(matr) {
+  #    idlist <- c()
+  #    
+  #    for (i in 1:ncol(matr)) {
+  #      if (length(unique(matr[, i])) == nrow(matr)) {
+  #        idlist <- c(idlist, names(matr)[i])
+  #      }
+  #    }
+  #    
+  #    invisible(idlist)
+  #  }
+  #  #####
+  #  validate(
+  #    idcheck(filtered())
+  #  )
+  #  paste("Variables are checked")
+  #})
     
   # Updating column selection
   observe({
@@ -365,15 +424,15 @@ server <- function(input, output, session) {
   filtered <- reactive({
     req(input$trt.ind)
     data0 <- filtered_pre()
-    data0[which(data0[ ,2] == input$trt.ind), 2] <- as.integer(1)
-    data0[which(data0[ ,2] != input$trt.ind), 2] <- as.integer(0)
+    data0[which(data0[ ,2] == input$trt.ind), 2] <- 1L
+    data0[which(data0[ ,2] != input$trt.ind), 2] <- 0L
     data0
   })
   
   # Filtered table display
   output$filteredtable <- renderTable({
     req(filtered())
-    return(head(filtered()))
+    return(head(filtered(), 20))
   })
 
   # Translating fit input and recode variables
@@ -409,7 +468,6 @@ server <- function(input, output, session) {
   
   # Summary output
   output$summary <- renderPrint({
-    req(fit())
     progress <- Progress$new(session, min=1, max=10)
     on.exit(progress$close())
     
@@ -443,6 +501,9 @@ server <- function(input, output, session) {
     if (input$csrule == "none") {
       NULL
       print("Common Support rule not specified, unable to plot")
+    }
+    else if (input$supportpredict) {
+      plot_support(fit(), xvar = "y0", yvar = "y1")
     }
     else plot_support(fit())
   })
