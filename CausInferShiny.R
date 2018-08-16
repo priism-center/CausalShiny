@@ -35,14 +35,30 @@ ui <- fluidPage(
                           hr(),
                           h4("Step 1. Upload data"),
                           p("Upload data and identify confounders (X), treatment (Z), 
-                            response (Y), and ID column (optional)."),
-                          h4("Step 2. Select estimand"),
-                          p("Specify treatment effect type."),
-                          h4("Step 3. Advanced options"),
+                            response (Y), and ID column (optional)"),
+                          
+                          ###### OLD VERSION
+                          #h4("Step 2. Select estimand"),
+                          #p("Specify treatment effect type."),
+                          #h4("Step 3. Advanced options"),
+                          #h5("Model propensity score?"),
+                          #p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
+                          #p("(2). How to include propensity score? (as weight or as covariate)"),
+                          #p("(3). Use TMLE adjustment?"),
+                          ######
+                          
+                          ###### NEW VERSION
+                          h4("Step 2. Estimand selection and advanced options"),
+                          h5("Specify treatment effect type"),
                           h5("Model propensity score?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
                           p("(2). How to include propensity score? (as weight or as covariate)"),
                           p("(3). Use TMLE adjustment?"),
+                          h4("Step 3. Display results"),
+                          p("Show summary of model fit"),
+                          ######
+                          
+                          
                           h4("Step 4. Check for common support"),
                           p("Common support plot"),
                           h4("Step 5. Convergence diagnostics"),
@@ -509,10 +525,6 @@ server <- function(input, output, session) {
   })
   
   
-  # Individual plots
-  output$indplots <- renderPlot({
-    
-  })
   
 }
 
