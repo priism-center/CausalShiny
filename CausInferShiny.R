@@ -107,14 +107,14 @@ ui <- fluidPage(
                           hr(),
                           
                           # Input: ID Column
-                          checkboxInput("id", "Subject ID column?", FALSE), 
+                          #checkboxInput("id", "Subject ID column?", FALSE), 
                           
-                          conditionalPanel(
-                            condition = "input.id",
-                            selectInput("idcol", "Subject ID Column", choices = NULL)
-                          ),
+                          #conditionalPanel(
+                          #  condition = "input.id",
+                          #  selectInput("idcol", "Subject ID Column", choices = NULL)
+                          #),
                           
-                          hr(),
+                          #hr(),
                           
                           # Column Selection for X and Y
                           selectInput("xcol", "Select Covariates (X) Columns", 
@@ -155,7 +155,7 @@ ui <- fluidPage(
              ),
              
              # Tab Panel 3
-             tabPanel("Select Estimand", 
+             tabPanel("Select Estimand & Advanced Options", 
                       
                   # Sidebar layout
                   sidebarLayout(
@@ -169,30 +169,8 @@ ui <- fluidPage(
                                                    "ATT" = "att",
                                                    "ATC" = "atc"),
                                        selected = "ate")
-                      ),
-                      
-                      # Main Panel
-                      mainPanel(
-                          
-                        # Output: plots
-                        h4("Filtered Table"),
-                        tableOutput("filteredtable")
-                      )
-                  )
-              ),
-             
-             
-             # Tab Panel 4
-             tabPanel("Advanced Options", 
-                      
-                  # Sidebar layout
-                  sidebarLayout(
-                        
-                      # Sidebar Panel
-                      sidebarPanel(
-                          
-                          ############ new structure
-                          # Input: Model Propensity Score
+                          ,
+                          #####
                           checkboxInput("pscheck", "Model Propensity Score?", TRUE),
                           hr(),
                           
@@ -218,7 +196,33 @@ ui <- fluidPage(
                           conditionalPanel(
                             condition = "input.pscheck",
                             checkboxInput("tmleadjust", "TMLE Adjustment?", FALSE)
-                          )),
+                          )
+                          #####
+                      ),
+                      
+                      # Main Panel
+                      mainPanel(
+                          
+                        # Output: plots
+                        h4("Filtered Table"),
+                        tableOutput("filteredtable")
+                      )
+                  )
+              ),
+             
+             
+             # Tab Panel 4
+             tabPanel("Display Results", 
+                      
+                  # Sidebar layout
+                  sidebarLayout(
+                        
+                      # Sidebar Panel
+                      sidebarPanel(
+                          
+                          ############ new structure
+                          # Input: Model Propensity Score
+                          actionButton("runButton", "Run Model")
                           
                           ############
                           
@@ -235,7 +239,7 @@ ui <- fluidPage(
                         #                               "1" = 1,
                         #                               "0.05" = 0.05),
                         #                   selected = NA_real_)),
-                       
+                      ),
                         # Main Panel
                         mainPanel(
                           
@@ -267,7 +271,7 @@ ui <- fluidPage(
                                      selected = "sd"),
                         
                         # Use prediction?
-                        checkboxInput("supportpredict", "Use prediction for 
+                        checkboxInput("supportpredict", "Use potential outcomes for 
                                       common support plot?", TRUE)
 
                           
@@ -314,7 +318,6 @@ ui <- fluidPage(
              
   )
   )
-  
 
 
 
@@ -468,22 +471,22 @@ server <- function(input, output, session) {
   })
   
   # Running bartc function to store fit
-  fit <- reactive({
+#  fit <- reactive({
+#    req(filtered())
+#    
+#    fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
+#                  confounders = as.matrix(filtered()[, c(-1, -2)]), 
+#                  estimand = input$estimand, method.rsp = rspmethod(),
+#                  method.trt = input$trtmethod, commonSup.rule = input$csrule,
+#                  group.by = ifelse(input$gvarcheck, gvar, FALSE)
+##                  ,commonSup.cut = input$cscut
+##                  ,p.scoreAsCovariate = (input$pscoreas == "cov")
+#                  )
+#    fit0
+#  })
+  fit <- eventReactive(input$runButton, {
     req(filtered())
     
-    fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
-                  confounders = as.matrix(filtered()[, c(-1, -2)]), 
-                  estimand = input$estimand, method.rsp = rspmethod(),
-                  method.trt = input$trtmethod, commonSup.rule = input$csrule,
-                  group.by = ifelse(input$gvarcheck, gvar, FALSE)
-#                  ,commonSup.cut = input$cscut
-#                  ,p.scoreAsCovariate = (input$pscoreas == "cov")
-                  )
-    fit0
-  })
-  
-  # Summary output
-  output$summary <- renderPrint({
     progress <- Progress$new(session, min=1, max=10)
     on.exit(progress$close())
     
@@ -493,6 +496,30 @@ server <- function(input, output, session) {
       progress$set(value = i)
       Sys.sleep(0.5)
     }
+    fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2],     
+                  confounders = as.matrix(filtered()[, c(-1, -2)]), 
+                  estimand = input$estimand, method.rsp = rspmethod(),
+                  method.trt = input$trtmethod, commonSup.rule = input$csrule,
+                  group.by = ifelse(input$gvarcheck, gvar, FALSE)
+#                  ,commonSup.cut = input$cscut
+#                  ,p.scoreAsCovariate = (input$pscoreas == "cov")
+                  )
+    fit0    
+  })
+  
+  
+  # Summary output
+  output$summary <- renderPrint({
+#    input$runButton
+#    progress <- Progress$new(session, min=1, max=10)
+#    on.exit(progress$close())
+#    
+#    progress$set(message = 'Model fitting in progress')
+#    
+#    for (i in 1:10) {
+#      progress$set(value = i)
+#      Sys.sleep(0.5)
+#    }
     summary(fit())
   })
   
