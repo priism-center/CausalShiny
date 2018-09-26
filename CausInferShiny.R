@@ -4,8 +4,19 @@ require(treatSens)
 require(foreign)
 require(readstata13)
 require(openxlsx)
+require(ggplot2)
 
 ########################################
+csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
+                  "Propensity Score"= "p.score", "Outcome"= "y", "y0", "y1", 
+                  "Individual Treatment Effect Estimates" = "indiv.diff", 
+                  "Propensity Score Weights" = "p.weights"
+                  #, "Any Predictor Column" = "other"
+                  )
+
+
+######
+
 ui <- fluidPage(
   
   # Navigating Tabs
@@ -270,24 +281,33 @@ ui <- fluidPage(
                                                 "chisq" = "chisq"),
                                      selected = "sd"),
                         
-                        # Use prediction?
-                        checkboxInput("supportpredict", "Use potential outcomes for 
-                                      common support plot?", TRUE)
+                        ### Use prediction?
+                        ###checkboxInput("supportpredict", "Use potential outcomes for 
+                        ###              common support plot?", TRUE)
 
                           
-                        #hr(),
+                        hr(),
                         
                         # Input: plot common support
-                        #conditionalPanel(
-                        #  condition = "input.csrule != 'none'",
-                        #  numericInput("xvar", "X Variable", 1, 
-                        #               min = 1, max = 10))
+                        conditionalPanel(
+                          condition = "input.csrule != 'none'",
+                          selectInput("xvar", "X Variable", 
+                                      choices = csplotaxis)),
+                        
+                        conditionalPanel(
+                          condition = "input.csrule != 'none'",
+                          selectInput("yvar", "Y Variable", 
+                                      choices = csplotaxis))
+                            
                       ),
                       
                       # Main Panel
                       mainPanel(
                         h4("Common Support Plot"),
-                        plotOutput("supplot")
+                        plotOutput("supplot"),
+                        ##
+                        downloadButton("supexp", "Download Plot")
+                        ##
                       )
                   )
              ),
@@ -538,20 +558,66 @@ server <- function(input, output, session) {
     plot_est(fit())
   })
   
+  
+  #####
+  # Define x and y axis
+  csxvar <- reactive({
+    req(filtered())
+    
+    if (input$xvar == "tree") {
+      "tree.1"
+    }
+    else if (input$xvar == "pca") {
+      "pca.1"
+    }
+    else if (input$xvar == "other") {
+      "y"
+    }
+    else input$xvar
+  })
+  
+  csyvar <- reactive({
+    req(filtered())
+    
+    if (input$yvar == "tree") {
+      "tree.2"
+    }
+    else if (input$yvar == "pca") {
+      "pca.2"
+    }
+    else if (input$yvar == "other") {
+      "y"
+    }
+    else input$yvar
+  })
+  
   # plot_support
-  output$supplot <- renderPlot({
+  supplot1 <- reactive({
     req(fit())
-    if (input$csrule == "none") {
-      NULL
-      print("Common Support rule not specified, unable to plot")
-    }
-    else if (input$supportpredict) {
-      plot_support(fit(), xvar = "y0", yvar = "y1")
-    }
-    else plot_support(fit())
+    #if (input$csrule == "none") {
+    #  NULL
+    #  print("Common Support rule not specified, unable to plot")
+    #}
+    #else 
+    plot_support(fit(), xvar = csxvar(), yvar = csyvar())
   })
   
   
+  # plot_support output
+  output$supplot <- renderPlot({
+    supplot1()
+  })
+  
+  output$supexp <- downloadHandler(
+    filename = function(){
+      "sup.png"
+    },
+    content = function(file){
+      ggsave(file, plot = plot_support(fit(), xvar = csxvar(), yvar = csyvar()), device = "png")
+    }
+  )
+  
+  #####
   
 }
 
@@ -560,3 +626,5 @@ shinyApp(ui = ui, server = server)
 
 #testdata <- read.csv("/Users/George/Desktop/A3SR/Others/Causal_Inference_Shiny/experiment/simpletest.csv", header = T)
 #fit1 <- bartc(testdata$Outcome, testdata$Treatment, testdata[, 1:2], estimand = "ate")
+#cpsdat <- read.csv("/Users/George/Desktop/A3SR/Others/Causal_Inference_Shiny/experiment/cps.csv", header = T)
+#fit2 <- bartc(cpsdat$re78, cpsdat$treat, cpsdat$age + cpsdat$educ, estimand = "ate", method.trt = "glm", p.scoreAsCovariate = T, method.rsp = "bart", commonSup.rule = "sd")
