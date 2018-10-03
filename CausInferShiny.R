@@ -5,6 +5,7 @@ require(foreign)
 require(readstata13)
 require(openxlsx)
 require(ggplot2)
+require(shinyBS)
 
 ########################################
 csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
@@ -14,6 +15,7 @@ csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css"
                   #, "Any Predictor Column" = "other"
                   )
 
+text1 <- "testing popup window for information"
 
 ######
 
@@ -60,7 +62,7 @@ ui <- fluidPage(
                           
                           ###### NEW VERSION
                           h4("Step 2. Estimand selection and advanced options"),
-                          h5("Specify treatment effect type"),
+                          h5("Specify", actionLink("link1", "treatment effect"), "type"),
                           h5("Model propensity score?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
                           p("(2). How to include propensity score? (as weight or as covariate)"),
@@ -69,7 +71,10 @@ ui <- fluidPage(
                           p("Show summary of model fit"),
                           ######
                           
+                          bsModal("modal1", "Treatment Effect", "link1", size = "large",
+                                  text1),
                           
+                          ######
                           h4("Step 4. Check for common support"),
                           p("Common support plot"),
                           h4("Step 5. Convergence diagnostics"),
@@ -78,7 +83,6 @@ ui <- fluidPage(
                           h4("R Packages Used"),
                           p(a("BARTCause", href = "https://github.com/vdorie/bartCause"), " and ",
                             a("treatSens", href = "https://cran.r-project.org/web/packages/treatSens/index.html"))
-                          
                           
                         )
                    )
