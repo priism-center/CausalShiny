@@ -50,20 +50,9 @@ ui <- fluidPage(
                           p("Upload data and identify confounders (X), treatment (Z), 
                             response (Y), and ID column (optional)"),
                           
-                          ###### OLD VERSION
-                          #h4("Step 2. Select estimand"),
-                          #p("Specify treatment effect type."),
-                          #h4("Step 3. Advanced options"),
-                          #h5("Model propensity score?"),
-                          #p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
-                          #p("(2). How to include propensity score? (as weight or as covariate)"),
-                          #p("(3). Use TMLE adjustment?"),
-                          ######
-                          
-                          ###### NEW VERSION
                           h4("Step 2. Estimand selection and advanced options"),
-                          h5("Specify", actionLink("link1", "treatment effect"), "type"),
-                          h5("Model propensity score?"),
+                          h5("A. Specify", actionLink("link1", "treatment effect"), "type"),
+                          h5("B. Model propensity score?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
                           p("(2). How to include propensity score? (as weight or as covariate)"),
                           p("(3). Use TMLE adjustment?"),
@@ -71,7 +60,9 @@ ui <- fluidPage(
                           p("Show summary of model fit"),
                           ######
                           
-                          bsModal("modal1", "Treatment Effect", "link1", size = "large",
+                          #Pop over vs. modal
+                          #bsPopover("link1", "Treatment Effect", content = text1, "hover"),
+                          bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
                                   text1),
                           
                           ######
