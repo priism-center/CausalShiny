@@ -17,9 +17,8 @@ csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css"
                   #, "Any Predictor Column" = "other"
                   )
 
-text1 <- "testing popup window for information"
-
-#source(functions.r)
+source("texts.r")
+source("functions.r")
 
 ######
 
@@ -52,11 +51,12 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           hr(),
                           h4("Step 1. Upload data"),
                           p("Upload data and identify confounders (X), treatment (Z), 
-                            response (Y), and ID column (optional)"),
+                            response (Y)"),
                           
-                          h4("Step 2. Estimand selection and advanced options"),
-                          h5("A. Specify", actionLink("link1", "treatment effect"), "type"),
-                          h5("B. Model propensity score?"),
+                          h4("Step 2." , actionLink("link1", "Estimand"), 
+                             "selection and advanced options"),
+                          h5("A. Specify the treatment effect to estimate"),
+                          h5("B. Model", actionLink("link2", "propensity score"), "?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
                           p("(2). How to include propensity score? (as weight or as covariate)"),
                           p("(3). Use TMLE adjustment?"),
@@ -65,9 +65,10 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           ######
                           
                           #Pop over vs. modal
-                          bsPopover("link1", "Treatment Effect", content = text1, "hover"),
+                          bsPopover("link1", "Estimand", content = text1, "hover"),
                           #bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
                                   #text1),
+                          bsPopover("link2", "Propensity Score", content = text2, "hover"),
                           
                           ######
                           h4("Step 4. Check for common support"),
@@ -109,11 +110,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           # Input: file
                           fileInput("file", "Choose File",
                                     multiple = FALSE,
-                                    accept = NULL
-                                    #  c("text/csv",
-                                    #           "text/comma-separated-values,text/plain",
-                                    #           ".csv")
-                                    ),
+                                    accept = NULL),
                           
                           hr(),
                           
@@ -121,16 +118,6 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           checkboxInput("header", "Header", TRUE),
                           
                           hr(),
-                          
-                          # Input: ID Column
-                          #checkboxInput("id", "Subject ID column?", FALSE), 
-                          
-                          #conditionalPanel(
-                          #  condition = "input.id",
-                          #  selectInput("idcol", "Subject ID Column", choices = NULL)
-                          #),
-                          
-                          #hr(),
                           
                           # Column Selection for X and Y
                           selectInput("xcol", "Select Covariates (X) Columns", 
@@ -239,31 +226,9 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           ############ new structure
                           # Input: Model Propensity Score
                           actionButton("runButton", "Run Model")
-                          
-                          ############
-                          
-                          
-                          # Input: Survey Weights
-                          #checkboxInput("sweight", "Survey Weights", FALSE),
-                          
-                        #  
-                        #    #Input: Add common support cut
-                        #    conditionalPanel(
-                        #      condition = "input.csrule != 'none'",
-                        #      radioButtons("cscut", "Select Common Support Cut",
-                        #                   choices = c("NA real" = NA_real_,
-                        #                               "1" = 1,
-                        #                               "0.05" = 0.05),
-                        #                   selected = NA_real_)),
                       ),
                         # Main Panel
                         mainPanel(
-                          
-                          # Output: plots
-                          #h4("Filtered Table"),
-                          #tableOutput("filteredtable2"),
-                          ######
-                          
                           verbatimTextOutput("summary")
                           ######
                       )
@@ -286,12 +251,17 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                                                 "chisq" = "chisq"),
                                      selected = "sd"),
                         
-                        ### Use prediction?
-                        ###checkboxInput("supportpredict", "Use potential outcomes for 
-                        ###              common support plot?", TRUE)
-
-                          
                         hr(),
+                        
+
+                        
+                        #conditionalPanel(
+                        #  condition = "input.csrule != 'none'",
+                        #  radioButtons("cscut", "Select Common Support Cut",
+                        #                choices = c("NA real" = NA_real_,
+                        #                            "1" = 1,
+                        #                            "0.05" = 0.05),
+                        #                selected = NA_real_)),
                         
                         # Input: plot common support
                         conditionalPanel(
@@ -433,28 +403,6 @@ server <- function(input, output, session) {
     ##########
     paste("Upload complete")
   })
-  
-  # Variable Confirmation
-  #output$variableconfirm <- renderText({
-  #  req(filtered)
-    #####
-  #  idcheck <- function(matr) {
-  #    idlist <- c()
-  #    
-  #    for (i in 1:ncol(matr)) {
-  #      if (length(unique(matr[, i])) == nrow(matr)) {
-  #        idlist <- c(idlist, names(matr)[i])
-  #      }
-  #    }
-  #    
-  #    invisible(idlist)
-  #  }
-  #  #####
-  #  validate(
-  #    idcheck(filtered())
-  #  )
-  #  paste("Variables are checked")
-  #})
     
   # Updating column selection
   observe({
@@ -514,20 +462,6 @@ server <- function(input, output, session) {
     else "bart"
   })
   
-  # Running bartc function to store fit
-#  fit <- reactive({
-#    req(filtered())
-#    
-#    fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2], 
-#                  confounders = as.matrix(filtered()[, c(-1, -2)]), 
-#                  estimand = input$estimand, method.rsp = rspmethod(),
-#                  method.trt = input$trtmethod, commonSup.rule = input$csrule,
-#                  group.by = ifelse(input$gvarcheck, gvar, FALSE)
-##                  ,commonSup.cut = input$cscut
-##                  ,p.scoreAsCovariate = (input$pscoreas == "cov")
-#                  )
-#    fit0
-#  })
   fit <- eventReactive(input$runButton, {
     req(filtered())
     
@@ -554,19 +488,8 @@ server <- function(input, output, session) {
   
   # Summary output
   output$summary <- renderPrint({
-#    input$runButton
-#    progress <- Progress$new(session, min=1, max=10)
-#    on.exit(progress$close())
-#    
-#    progress$set(message = 'Model fitting in progress')
-#    
-#    for (i in 1:10) {
-#      progress$set(value = i)
-#      Sys.sleep(0.5)
-#    }
     summary(fit())
   })
-  
   
   ##########
   
