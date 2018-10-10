@@ -8,6 +8,7 @@ require(ggplot2)
 require(shinyBS)
 require(png)
 require(shinythemes)
+library(dbarts)
 
 ########################################
 csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
@@ -59,7 +60,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           h5("B. Model", actionLink("link2", "propensity score"), "?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
                           p("(2). How to include propensity score? (as weight or as covariate)"),
-                          p("(3). Use TMLE adjustment?"),
+                          p("(3). Use", actionLink("link3", "TMLE"), "adjustment?"),
                           h4("Step 3. Display results"),
                           p("Show summary of model fit"),
                           ######
@@ -69,6 +70,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           #bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
                                   #text1),
                           bsPopover("link2", "Propensity Score", content = text2, "hover"),
+                          bsPopover("link3", "TMLE", content = text3, "hover"),
                           
                           ######
                           h4("Step 4. Check for common support"),
@@ -78,9 +80,12 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           hr(),
                           h4("R Package Used"),
                           p(a("BARTCause", href = "https://github.com/vdorie/bartCause")),
+                          p(a("dbarts", href = "https://github.com/vdorie/dbarts")),
                           
                           hr(),
                           h1("Example"),
+                          p("Start by clicking on the Upload Data tab. Select data type and 
+                            click on Browse for file path"),
                           imageOutput("img1"),
                           hr(),
                           p("Specify X, Y, Z variables for the data uploaded, you can check 
@@ -431,13 +436,28 @@ server <- function(input, output, session) {
     updateSelectInput(session, "trt.ind", choices = trtvalues)
   })
   
-  # Filtered table object
+  # Filtered data frame object
   filtered <- reactive({
     req(input$trt.ind)
+    
     data0 <- filtered_pre()
     data0[which(data0[ ,2] == input$trt.ind), 2] <- 1L
     data0[which(data0[ ,2] != input$trt.ind), 2] <- 0L
-    data0
+    
+    if (input$gvarcheck) {
+      data0 <- data.frame(cbind(data0, subset(my_data(), select = input$gvar)))
+      return(data0)
+    }
+    else return(data0)
+  })
+  
+  # Col number of last confounder
+  confnum <- reactive({
+    req(filtered())
+    if (input$gvarcheck) {
+      return(ncol(filtered()) - 1)
+    }
+    else return(ncol(filtered()))
   })
   
   # Filtered table display
@@ -462,6 +482,23 @@ server <- function(input, output, session) {
     else "bart"
   })
   
+  # p.scoreAsCovariate argument
+  psas <- reactive({
+    req(filtered())
+    return(input$pscoreas == "cov")
+  })
+  
+  # group.by argument
+  gby <- reactive({
+    req(filtered())
+    
+    if (input$gvarcheck) {
+      return(filtered()[ ,ncol(filtered())])
+    }
+    else return(FALSE)
+  })
+  
+  # Model fitting 
   fit <- eventReactive(input$runButton, {
     req(filtered())
     
@@ -475,12 +512,13 @@ server <- function(input, output, session) {
       Sys.sleep(0.5)
     }
     fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2],     
-                  confounders = as.matrix(filtered()[, c(-1, -2)]), 
+                  confounders = as.matrix(filtered()[, 3:confnum()]), 
                   estimand = input$estimand, method.rsp = rspmethod(),
                   method.trt = input$trtmethod, commonSup.rule = input$csrule,
-                  group.by = ifelse(input$gvarcheck, gvar, FALSE)
+                  group.by = gby(), keepCall = F, 
+                  p.scoreAsCovariate = psas(), use.rbart = input$gvarcheck
 #                  ,commonSup.cut = input$cscut
-#                  ,p.scoreAsCovariate = (input$pscoreas == "cov")
+#                  ,
                   )
     fit0    
   })
