@@ -6,6 +6,8 @@ require(readstata13)
 require(openxlsx)
 require(ggplot2)
 require(shinyBS)
+require(png)
+require(shinythemes)
 
 ########################################
 csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
@@ -17,9 +19,11 @@ csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css"
 
 text1 <- "testing popup window for information"
 
+#source(functions.r)
+
 ######
 
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("cerulean"), 
   
   # Navigating Tabs
   navbarPage("Causal Inference",
@@ -61,9 +65,9 @@ ui <- fluidPage(
                           ######
                           
                           #Pop over vs. modal
-                          #bsPopover("link1", "Treatment Effect", content = text1, "hover"),
-                          bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
-                                  text1),
+                          bsPopover("link1", "Treatment Effect", content = text1, "hover"),
+                          #bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
+                                  #text1),
                           
                           ######
                           h4("Step 4. Check for common support"),
@@ -71,10 +75,16 @@ ui <- fluidPage(
                           h4("Step 5. Convergence diagnostics"),
                           p("Trace plots"),
                           hr(),
-                          h4("R Packages Used"),
-                          p(a("BARTCause", href = "https://github.com/vdorie/bartCause"), " and ",
-                            a("treatSens", href = "https://cran.r-project.org/web/packages/treatSens/index.html"))
+                          h4("R Package Used"),
+                          p(a("BARTCause", href = "https://github.com/vdorie/bartCause")),
                           
+                          hr(),
+                          h1("Example"),
+                          imageOutput("img1"),
+                          hr(),
+                          p("Specify X, Y, Z variables for the data uploaded, you can check 
+                            if the dataframe is in working condition from the Status bar"),
+                          imageOutput("img2")
                         )
                    )
               ),
@@ -336,8 +346,27 @@ ui <- fluidPage(
 
 
 
-#########################################
+###################################################
 server <- function(input, output, session) {
+  
+  # Image outputs
+  output$img1 <- renderImage({
+    return(list(
+      src = "images/upload_file.png",
+      filetype = "image/png",
+      height = 365,
+      width = 480
+    ))
+  }, deleteFile = F)
+  
+  output$img2 <- renderImage({
+    return(list(
+      src = "images/select_variables.png",
+      filetype = "image/png",
+      height = 365,
+      width = 480
+    ))
+  }, deleteFile = F)
   
   # Create global data object
   my_data <- reactive({
