@@ -1,10 +1,9 @@
 require(shiny)
 require(bartCause)
-require(treatSens)
 require(foreign)
 require(readstata13)
 require(openxlsx)
-require(ggplot2)
+require(tidyverse)
 require(shinyBS)
 require(png)
 require(shinythemes)
@@ -19,7 +18,7 @@ csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css"
                   )
 
 source("texts.r")
-source("functions.r")
+source("functions.R")
 
 ######
 
@@ -54,8 +53,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           p("Upload data and identify confounders (X), treatment (Z), 
                             response (Y)"),
                           
-                          h4("Step 2." , actionLink("link1", "Estimand"), 
-                             "selection and advanced options"),
+                          h4("Step 2. Estimand selection and advanced options"),
                           h5("A. Specify the treatment effect to estimate"),
                           h5("B. Model", actionLink("link2", "propensity score"), "?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
@@ -66,7 +64,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           ######
                           
                           #Pop over vs. modal
-                          bsPopover("link1", "Estimand", content = text1, "hover"),
+                          
                           #bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
                                   #text1),
                           bsPopover("link2", "Propensity Score", content = text2, "hover"),
@@ -172,12 +170,16 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                       sidebarPanel(
                           
                           # Input: Select Estimand
-                          radioButtons("estimand", "Select Estimand",
+                          radioButtons("estimand", actionLink("link1", "Select Estimand"),
                                        choices = c("ATE" = "ate",
                                                    "ATT" = "att",
                                                    "ATC" = "atc"),
                                        selected = "ate")
                           ,
+                          
+                          #bsPopover("link1", "Estimand", content = text1, "hover"),
+                          bsModal("Modal1", "Estimand", "link1", size = "large", 
+                                  uiOutput("text1")),
                           #####
                           checkboxInput("pscheck", "Model Propensity Score?", TRUE),
                           hr(),
@@ -324,10 +326,15 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
 ###################################################
 server <- function(input, output, session) {
   
+  # Text outputs
+  output$text1 <- renderUI({
+    tag1
+  })
+  
   # Image outputs
   output$img1 <- renderImage({
     return(list(
-      src = "images/upload_file.png",
+      src = "www/upload_file.png",
       filetype = "image/png",
       height = 365,
       width = 480
@@ -336,7 +343,7 @@ server <- function(input, output, session) {
   
   output$img2 <- renderImage({
     return(list(
-      src = "images/select_variables.png",
+      src = "www/select_variables.png",
       filetype = "image/png",
       height = 365,
       width = 480
@@ -376,36 +383,10 @@ server <- function(input, output, session) {
   })
   
   output$uploadconfirm <- renderText({
-    
-    ##########
-    datacheck <- function(data, confound, trt, resp) {
-      if (is.null(data)) {
-        "Please Upload a dataset"
-      }
-      
-      else {
-        
-        if (is.null(confound) || trt == "" || resp == "") {
-          "Please identify X, Y, Z"
-        }
-        
-        else {
-          
-          if (length(unique(my_data()[, which(names(my_data()) == trt)])) > 2) {
-            "Please check treatment variable selection, and/or missing values"
-          }
-          
-          else {
-            NULL
-          }
-        }
-      }
-    }
-    
     validate(
       datacheck(input$file, input$xcol, input$zcol, input$ycol)
     )
-    ##########
+    # datacheck in functions.R
     paste("Upload complete")
   })
     
