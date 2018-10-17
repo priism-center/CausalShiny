@@ -12,31 +12,6 @@ idcheck <- function(matr) {
   invisible(idlist)
 }
 
-# dataset validation
-datacheck <- function(data, confound, trt, resp) {
-   if (is.null(data)) {
-     "Please Upload a dataset"
-   }
-   
-   else {
-     
-     if (is.null(confound) || trt == "" || resp == "") {
-       "Please identify X, Y, Z"
-     }
-     
-     else {
-       
-       if (length(unique(my_data()[, which(names(my_data()) == trt)])) > 2) {
-         "Please check treatment variable selection, and/or missing values"
-       }
-       
-       else {
-          NULL
-       }
-      }
-     }
-    }
-
 
 # Variable Confirmation
 #output$variableconfirm <- renderText({

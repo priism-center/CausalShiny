@@ -55,7 +55,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           
                           h4("Step 2. Estimand selection and advanced options"),
                           h5("A. Specify the treatment effect to estimate"),
-                          h5("B. Model", actionLink("link2", "propensity score"), "?"),
+                          h5("B. Model propensity score ?"),
                           p("(1). Method for treatment assignment? (bart, bart.xval, glm)"),
                           p("(2). How to include propensity score? (as weight or as covariate)"),
                           p("(3). Use", actionLink("link3", "TMLE"), "adjustment?"),
@@ -67,7 +67,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           
                           #bsModal("Modal1", "Treatment Effect", "link1", size = "large", 
                                   #text1),
-                          bsPopover("link2", "Propensity Score", content = text2, "hover"),
+                          
                           bsPopover("link3", "TMLE", content = text3, "hover"),
                           
                           ######
@@ -174,14 +174,17 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                                        choices = c("ATE" = "ate",
                                                    "ATT" = "att",
                                                    "ATC" = "atc"),
-                                       selected = "ate")
-                          ,
+                                       selected = "ate"),
                           
                           #bsPopover("link1", "Estimand", content = text1, "hover"),
                           bsModal("Modal1", "Estimand", "link1", size = "large", 
                                   uiOutput("text1")),
                           #####
-                          checkboxInput("pscheck", "Model Propensity Score?", TRUE),
+                          checkboxInput("pscheck", actionLink("link2", " Model propensity 
+                                                              score?"), TRUE),
+                          
+                          bsModal("Modal2", "Propensity Score", "link2", size = "large", 
+                                  uiOutput("text2")),
                           hr(),
                           
                           conditionalPanel(
@@ -260,15 +263,15 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                         
                         hr(),
                         
-
+                        #conditionalPanel(
+                        #  condition = "input.csrule == 'sd'",
+                        #  sliderInput("cscutsd", "Select Common Support Cut",
+                        #                min = 1, max = 3, value = 1, step = 0.5)),
                         
                         #conditionalPanel(
-                        #  condition = "input.csrule != 'none'",
-                        #  radioButtons("cscut", "Select Common Support Cut",
-                        #                choices = c("NA real" = NA_real_,
-                        #                            "1" = 1,
-                        #                            "0.05" = 0.05),
-                        #                selected = NA_real_)),
+                        #  condition = "input.csrule == 'chisq'",
+                        #  sliderInput("cscutchisq", "Select Common Support Cut",
+                        #              min = 0.05, max = 0.3, value = 0.05, step = 0.05)),
                         
                         # Input: plot common support
                         conditionalPanel(
@@ -280,6 +283,11 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           condition = "input.csrule != 'none'",
                           selectInput("yvar", "Y Variable", 
                                       choices = csplotaxis))
+                        
+                        #conditionalPanel(
+                        #  condition = "input.csrule != 'none'",
+                        #  sliderInput("")
+                        #)
                             
                       ),
                       
@@ -329,6 +337,10 @@ server <- function(input, output, session) {
   # Text outputs
   output$text1 <- renderUI({
     tag1
+  })
+  
+  output$text2 <- renderUI({
+    tag2
   })
   
   # Image outputs
@@ -383,6 +395,31 @@ server <- function(input, output, session) {
   })
   
   output$uploadconfirm <- renderText({
+    # dataset validation
+    datacheck <- function(data, confound, trt, resp) {
+      if (is.null(data)) {
+        "Please Upload a dataset"
+      }
+      
+      else {
+        
+        if (is.null(confound) || trt == "" || resp == "") {
+          "Please identify X, Y, Z"
+        }
+        
+        else {
+          
+          if (length(unique(my_data()[, which(names(my_data()) == trt)])) > 2) {
+            "Please check treatment variable selection, and/or missing values"
+          }
+          
+          else {
+            NULL
+          }
+        }
+      }
+    }
+    
     validate(
       datacheck(input$file, input$xcol, input$zcol, input$ycol)
     )
@@ -479,6 +516,21 @@ server <- function(input, output, session) {
     else return(FALSE)
   })
   
+  # cscut argument
+  #cscut <- reactive({
+  #  req(filtered())
+    
+  #  if (input$csrule == 'none') {
+  #    return(NA_real_)
+  #  }
+    
+  #  else if (input$csrule == 'sd') {
+  #    return(input$cscutsd)
+  #  }
+  #  
+  #  else return(input$cscutchisq)
+  #})
+  
   # Model fitting 
   fit <- eventReactive(input$runButton, {
     req(filtered())
@@ -498,8 +550,7 @@ server <- function(input, output, session) {
                   method.trt = input$trtmethod, commonSup.rule = input$csrule,
                   group.by = gby(), keepCall = F, 
                   p.scoreAsCovariate = psas(), use.rbart = input$gvarcheck
-#                  ,commonSup.cut = input$cscut
-#                  ,
+#                  commonSup.cut = input$cscut, 
                   )
     fit0    
   })
