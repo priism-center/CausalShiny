@@ -12,7 +12,7 @@ tag1 <- tagList(
   tags$hr(),
   tags$img(src = 'potential_outcome.png', height = 400),
   tags$hr(),
-  p1,
+  p3,
   tags$hr(),
   tags$h5("ATE: "),
   tags$p("Use ATE when the main target of inference is everyone in the sample"),

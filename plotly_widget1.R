@@ -5,8 +5,8 @@ theme_opts <- list(theme(panel.grid.major = element_line(color = "grey", size = 
                          panel.background = element_blank(), 
                          axis.line = element_line(color = "black"),
                          plot.background = element_blank(),
-                         legend.position="right",
-                         plot.title = element_text(size = 20)))
+                         legend.position="none",
+                         plot.title = element_text(size = 12)))
 
 p <- ggplot(df1, aes(x, y, col = factor(treatment), 
                      text = paste('X:', round(x, 2),
@@ -34,4 +34,17 @@ p1 <- p %>% ggplotly(tooltip = "text") %>%
       add_segments(x = ~x, xend = ~x, y = ~y, yend = ~(72 + beta0*x^(1/2)), 
                    showlegend = F, color = I("red"), alpha = 0.3, size = I(1))
   }) %>%
+#  layout(autosize = F, width = 400, height = 300) %>%
   rangeslider()
+
+p2 <- ggplot() + 
+  theme_opts +
+  geom_histogram(data = filter(df1, treatment == 1), aes(x, y = ..count..), 
+                 alpha = 0.5, position = "identity", col = "red", fill = "red", binwidth = 3) + 
+  geom_histogram(data = filter(df1, treatment == 0), aes(x, y = -..count..), 
+                 alpha = 0.5, position = "identity", col = "blue", fill = "blue", binwidth = 3)
+  
+p3 <- p2 %>% ggplotly() %>% layout(autosize = F, width = 550, height = 550) %>%
+  subplot(p1, nrows = 2, shareX = T) 
+
+
