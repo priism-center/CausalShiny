@@ -1,3 +1,4 @@
+source("plotly_widget1.R")
 
 tag1 <- tagList(
   tags$h5("Estimand: quantity to estimate"),
@@ -10,6 +11,9 @@ tag1 <- tagList(
   tags$img(src = 'counterfactual.png', height = 225),
   tags$hr(),
   tags$img(src = 'potential_outcome.png', height = 400),
+  tags$hr(),
+  p1,
+  tags$hr(),
   tags$h5("ATE: "),
   tags$p("Use ATE when the main target of inference is everyone in the sample"),
   tags$h5("ATC: "), 
@@ -27,3 +31,4 @@ tag2 <- tagList(
 
 
 text3 <- "Targeted Maximum likelihood Estimation: Mark Van Der Laan, Daniel Rubin"
+

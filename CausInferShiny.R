@@ -8,6 +8,7 @@ require(shinyBS)
 require(png)
 require(shinythemes)
 library(dbarts)
+library(plotly)
 
 ########################################
 csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
@@ -283,6 +284,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           condition = "input.csrule != 'none'",
                           selectInput("yvar", "Y Variable", 
                                       choices = csplotaxis))
+                        
                         
                         #conditionalPanel(
                         #  condition = "input.csrule != 'none'",
