@@ -1,5 +1,5 @@
-require(tidyverse)
-library(plotly)
+#require(tidyverse)
+#require(plotly)
 
 mc1 <- list(color = toRGB("blue", 0.7))
 mc2 <- list(color = toRGB("blue", 0.3))
@@ -7,7 +7,7 @@ mt1 <- list(color = toRGB("red", 0.7))
 mt2 <- list(color = toRGB("red", 0.3))
 invcol <- list(color = toRGB("white", 0))
 
-plotly_vis_cont <- function(dat, confounder) {
+plotly_vis_cont <- function(dat, confounder, nbins) {
   #xplotly <- fit$data.rsp@x
   #yplotly <- fit$data.rsp@x
   xplotly <- dat[[confounder]]
@@ -28,14 +28,16 @@ plotly_vis_cont <- function(dat, confounder) {
     }) %>% 
     layout(dragmode = "select")  
   
-  p2 <- df %>% plot_ly(type = 'histogram') %>% 
+  p2 <- df %>% plot_ly(type = 'histogram', histnorm = "probability density") %>% 
     add_fun(function(p) {
       p %>% filter(treat == 0) %>%
-        add_histogram(x = ~xplotly, showlegend = F, marker = mc2)
+        add_histogram(x = ~xplotly, showlegend = F, autobinx = F, 
+                      xbins = nbins, marker = mc2)
     }) %>% 
     add_fun(function(p) {
       p %>% filter(treat == 1) %>%
-        add_histogram(x = ~xplotly, showlegend = F, marker = mt2)
+        add_histogram(x = ~xplotly, showlegend = F, autobinx = F, 
+                      xbins = nbins, marker = mt2)
     })  %>% layout(barmode = "overlay")
   
   p3 <- p1 %>% layout(autosize = F, width = 500, height = 600) %>%
@@ -63,7 +65,7 @@ plotly_vis_dis <- function(dat, confounder) {
                     showlegend = F, marker = mt2, line = mt2)
     }) %>% layout(boxmode = 'group')
   
-  p2 <- df %>% plot_ly(type = 'histogram') %>% 
+  p2 <- df %>% plot_ly(type = 'histogram', histnorm = "probability density") %>% 
     add_fun(function(p) {
       p %>% filter(treat == 0) %>%
         add_histogram(x = ~xplotly, showlegend = F, marker = mc2)

@@ -7,8 +7,8 @@ require(tidyverse)
 require(shinyBS)
 require(png)
 require(shinythemes)
-library(dbarts)
-library(plotly)
+require(dbarts)
+require(plotly)
 
 ########################################
 csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
@@ -259,6 +259,12 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                         h4("Check for overlap"),
                         selectInput("xvalplot", "Check overlap on which confounder?", 
                                     choices = NULL),
+                        
+                        conditionalPanel(
+                          condition = "output.xcont == 1",
+                          sliderInput("plotlybins", "Select Number of Bins",
+                                      min = 6, max = 30, value = 10, step = 1)),
+                        
                         hr(),
                         
                         h4("Common support plot"),
@@ -638,11 +644,22 @@ server <- function(input, output, session) {
   })
   
   # Plotly Output
+  output$xcont <- reactive({
+    req(filtered())
+    req(input$xvalplot)
+    if (length(unique(filtered()[[input$xvalplot]])) >= 6)
+      return(1)
+    else return(0)
+  })
+  
+  outputOptions(output, "xcont", suspendWhenHidden = FALSE) 
+  
   plotlyob <- reactive({
     req(input$xvalplot)
     req(filtered())
     if (length(unique(filtered()[[input$xvalplot]])) >= 6) {
-      plotly_vis_cont(filtered(), input$xvalplot)
+      xbins <- compbins(filtered()[[input$xvalplot]], input$plotlybins)
+      plotly_vis_cont(filtered(), input$xvalplot, nbins = xbins)
     }
     else
       plotly_vis_dis(filtered(), input$xvalplot)

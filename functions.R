@@ -12,6 +12,15 @@ idcheck <- function(matr) {
   invisible(idlist)
 }
 
+compbins <- function(x, n) {
+  list(
+    start = min(x),
+    end = max(x),
+    size = (max(x) - min(x))/n
+  )
+}
+
+
 
 # Variable Confirmation
 #output$variableconfirm <- renderText({
