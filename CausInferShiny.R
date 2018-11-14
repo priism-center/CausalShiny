@@ -20,6 +20,7 @@ csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css"
 
 source("texts.r")
 source("functions.R")
+source("shinyPlotly.r")
 
 ######
 
@@ -255,6 +256,12 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                       # Sidebar Panel
                       sidebarPanel(
                         
+                        h4("Check for overlap"),
+                        selectInput("xvalplot", "Check overlap on which confounder?", 
+                                    choices = NULL),
+                        hr(),
+                        
+                        h4("Common support plot"),
                         #Input: Add common support rule
                         radioButtons("csrule", "Select Common Support Rule",
                                     choices = c("none" = "none",
@@ -262,7 +269,6 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                                                 "chisq" = "chisq"),
                                      selected = "sd"),
                         
-                        hr(),
                         
                         #conditionalPanel(
                         #  condition = "input.csrule == 'sd'",
@@ -290,16 +296,19 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                         #  condition = "input.csrule != 'none'",
                         #  sliderInput("")
                         #)
-                            
+                        
                       ),
                       
                       # Main Panel
                       mainPanel(
                         h4("Common Support Plot"),
+                        ##
+                        plotlyOutput("supplotly", width = 500, height = 800),
+                        ##
+                        br(),
                         plotOutput("supplot"),
-                        ##
-                        downloadButton("supexp", "Download Plot")
-                        ##
+                        
+                       downloadButton("supexp", "Download Plot")
                       )
                   )
              ),
@@ -438,7 +447,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "zcol", choices = vars)
     updateSelectInput(session, "ycol", choices = vars)
     updateSelectInput(session, "gvar", choices = vars)
-    updateNumericInput(session, "xvar", max = ncol(my_data()))
+    #updateNumericInput(session, "xvar", max = ncol(my_data()))
   })
   
   ##########
@@ -454,6 +463,7 @@ server <- function(input, output, session) {
     req(filtered_pre())
     trtvalues <- unique(filtered_pre()[, 2])
     updateSelectInput(session, "trt.ind", choices = trtvalues)
+    updateSelectInput(session, "xvalplot", choices = input$xcol)
   })
   
   # Filtered data frame object
@@ -465,7 +475,7 @@ server <- function(input, output, session) {
     data0[which(data0[ ,2] != input$trt.ind), 2] <- 0L
     
     if (input$gvarcheck) {
-      data0 <- data.frame(cbind(data0, subset(my_data(), select = input$gvar)))
+      data0 <- cbind.data.frame(data0, subset(my_data(), select = input$gvar))
       return(data0)
     }
     else return(data0)
@@ -626,6 +636,23 @@ server <- function(input, output, session) {
   output$supplot <- renderPlot({
     supplot1()
   })
+  
+  # Plotly Output
+  plotlyob <- reactive({
+    req(input$xvalplot)
+    req(filtered())
+    if (length(unique(filtered()[[input$xvalplot]])) >= 6) {
+      plotly_vis_cont(filtered(), input$xvalplot)
+    }
+    else
+      plotly_vis_dis(filtered(), input$xvalplot)
+  })
+  
+  output$supplotly <- renderPlotly({
+    req(plotlyob())
+    plotlyob()
+  })
+  
   
   output$supexp <- downloadHandler(
     filename = function(){

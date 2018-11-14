@@ -8,6 +8,26 @@ theme_opts <- list(theme(panel.grid.major = element_line(color = "grey", size = 
                          legend.position="none",
                          plot.title = element_text(size = 12)))
 
+beta1 <- .06
+beta0 <- 3
+tmp <- c(74.0943636, 8.3200778, 0.5136005)
+
+f1 <- function(x) {
+  90 + exp(x*beta1)
+}
+
+f2 <- function(x) {
+  72+beta0*x^(1/2)
+}
+
+f3 <- function(x) {
+  tmp[1] + tmp[3]*x
+}
+
+f4 <- function(x) {
+  tmp[1] + tmp[2] + tmp[3]*x
+}
+
 p <- ggplot(df1, aes(x, y, col = factor(treatment), 
                      text = paste('X:', round(x, 2),
                                   '<br>Y: ', round(y, 2),
@@ -34,7 +54,6 @@ p1 <- p %>% ggplotly(tooltip = "text") %>%
       add_segments(x = ~x, xend = ~x, y = ~y, yend = ~(72 + beta0*x^(1/2)), 
                    showlegend = F, color = I("red"), alpha = 0.3, size = I(1))
   }) %>%
-#  layout(autosize = F, width = 400, height = 300) %>%
   rangeslider()
 
 p2 <- ggplot() + 
@@ -44,7 +63,7 @@ p2 <- ggplot() +
   geom_histogram(data = filter(df1, treatment == 0), aes(x, y = -..count..), 
                  alpha = 0.5, position = "identity", col = "blue", fill = "blue", binwidth = 3)
   
-p3 <- p2 %>% ggplotly() %>% layout(autosize = F, width = 550, height = 550) %>%
+p3 <- p2 %>% ggplotly() %>% layout(autosize = F, width = 550, height = 700) %>%
   subplot(p1, nrows = 2, shareX = T) 
 
-
+p3
