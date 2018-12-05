@@ -10,73 +10,73 @@ invcol <- list(color = toRGB("white", 0))
 plotly_vis_cont <- function(dat, confounder, nbins) {
   #xplotly <- fit$data.rsp@x
   #yplotly <- fit$data.rsp@x
-  xplotly <- dat[[confounder]]
+  covariate <- dat[[confounder]]
   yplotly <- dat[ ,1]
   treat <- dat[ ,2]
   
-  df <- cbind.data.frame(xplotly, yplotly, treat)
-  #df_dis <- df %>% group_by(xplotly, treat) %>% mutate()
+  df <- cbind.data.frame(covariate, yplotly, treat)
+  #df_dis <- df %>% group_by(covariate, treat) %>% mutate()
   
   p1 <- df %>% plot_ly(type = 'scatter', mode = 'markers') %>% 
     add_fun(function(p) {
       p %>% filter(treat == 0) %>%
-        add_trace(x = ~xplotly, y = ~yplotly, showlegend = F, marker = mc2)
+        add_trace(x = ~covariate, y = ~yplotly, showlegend = F, marker = mc2)
     }) %>% 
     add_fun(function(p) {
       p %>% filter(treat == 1) %>%
-        add_trace(x = ~xplotly, y = ~yplotly, showlegend = F, marker = mt2)
+        add_trace(x = ~covariate, y = ~yplotly, showlegend = F, marker = mt2)
     }) %>% 
     layout(dragmode = "select")  
   
   p2 <- df %>% plot_ly(type = 'histogram', histnorm = "probability density") %>% 
     add_fun(function(p) {
       p %>% filter(treat == 0) %>%
-        add_histogram(x = ~xplotly, showlegend = F, autobinx = F, 
+        add_histogram(x = ~covariate, showlegend = F, autobinx = F, 
                       xbins = nbins, marker = mc2)
     }) %>% 
     add_fun(function(p) {
       p %>% filter(treat == 1) %>%
-        add_histogram(x = ~xplotly, showlegend = F, autobinx = F, 
+        add_histogram(x = ~covariate, showlegend = F, autobinx = F, 
                       xbins = nbins, marker = mt2)
     })  %>% layout(barmode = "overlay")
   
-  p3 <- p1 %>% layout(autosize = F, width = 500, height = 600) %>%
-    subplot(p2, nrows = 2, shareX = T) %>% rangeslider()
+  p3 <- p1  %>% subplot(p2, nrows = 2, shareX = T) %>% layout(autosize = F, 
+    width = 500, height = 600, yaxis1 = list(title = 'Response(Y)')) %>% rangeslider()
   
   p3
 }
 
 plotly_vis_dis <- function(dat, confounder) {
-  xplotly <- dat[[confounder]]
+  covariate <- dat[[confounder]]
   yplotly <- dat[ ,1]
   treat <- dat[ ,2]
   
-  df <- cbind.data.frame(xplotly, yplotly, treat)
+  df <- cbind.data.frame(covariate, yplotly, treat)
   
   p1 <- df %>% plot_ly(type = 'box') %>% 
     add_fun(function(p) {
       p %>% filter(treat == 0) %>%
-        add_boxplot(x = ~xplotly, y = ~yplotly, jitter = 0.1, pointpos = 1.35, boxpoints = 'all', 
+        add_boxplot(x = ~covariate, y = ~yplotly, jitter = 0.1, pointpos = 1.35, boxpoints = 'all', 
                     showlegend = F, marker = mc2, line = mc2)
     }) %>% 
     add_fun(function(p) {
       p %>% filter(treat == 1) %>%
-        add_boxplot(x = ~xplotly, y = ~yplotly, jitter = -0.1, pointpos = -1.35, boxpoints = 'all', 
+        add_boxplot(x = ~covariate, y = ~yplotly, jitter = -0.1, pointpos = -1.35, boxpoints = 'all', 
                     showlegend = F, marker = mt2, line = mt2)
-    }) %>% layout(boxmode = 'group')
+    }) %>% layout(boxmode = 'group', yaxis = list(title = 'Response(Y)'))
   
   p2 <- df %>% plot_ly(type = 'histogram', histnorm = "probability density") %>% 
     add_fun(function(p) {
       p %>% filter(treat == 0) %>%
-        add_histogram(x = ~xplotly, showlegend = F, marker = mc2)
+        add_histogram(x = ~covariate, showlegend = F, marker = mc2)
     }) %>% 
     add_fun(function(p) {
       p %>% filter(treat == 1) %>%
-        add_histogram(x = ~xplotly, showlegend = F, marker = mt2)
+        add_histogram(x = ~covariate, showlegend = F, marker = mt2)
     }) %>% layout(barmode = 'group')
   
-  p3 <- p1 %>% layout(autosize = F, width = 500, height = 800) %>% 
-    subplot(p2, nrows = 2, shareX = T)
+  p3 <- p1 %>% subplot(p2, nrows = 2, shareX = T) %>% layout(autosize = F, 
+          width = 500, height = 800, yaxis1 = list(title = 'Response(Y)'))
   
   p3
 }

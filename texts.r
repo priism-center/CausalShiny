@@ -26,9 +26,17 @@ tag2 <- tagList(
   tags$h5("Propensity score measures the probability of receiving treatment")
 )
   
-  
-  
-
-
 text3 <- "Targeted Maximum likelihood Estimation: Mark Van Der Laan, Daniel Rubin"
+
+tag4 <- tagList(
+  tags$h5("Overlap:"),
+  tags$p("the extent to which the range of the covariate data is the same between the 
+         treatment and control groups."),
+  tags$img(src = 'Overlap.png', height = 150),
+  tags$h5("Balance:"),
+  tags$p("the extent to which the distribution of the covariate data is the same between 
+         the treatment and control groups."),
+  tags$img(src = 'Balance.png', height = 150)
+)
+
 

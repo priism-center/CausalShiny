@@ -9,6 +9,7 @@ require(png)
 require(shinythemes)
 require(dbarts)
 require(plotly)
+require(DT)
 
 ########################################
 csplotaxis <- c("Tree"= "tree", "PCA"= "pca", "Common Support Statistics"= "css", 
@@ -90,7 +91,19 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           hr(),
                           p("Specify X, Y, Z variables for the data uploaded, you can check 
                             if the dataframe is in working condition from the Status bar"),
-                          imageOutput("img2")
+                          imageOutput("img2"),
+                          hr(),
+                          # sliderInput('overlap1',
+                          #             label = div(style='width:500px;',
+                          #                         div(style='float:left;', 'No Overlap'),
+                          #                         div(style='float:right;', 'Complete Overlap')),
+                          #             ticks = F, min = 0, max = 4, value = 2, width = '500px'),
+                          sliderInput('overlap1',
+                                      label = div(style='width:500px;',
+                                                  div(style='float:left;', 'No Overlap'),
+                                                  div(style='float:right;', 'Complete Overlap')),
+                                      ticks = F, min = 1, max = 100, value = 1, width = '500px'),
+                          plotlyOutput("overlap_plty")
                         )
                    )
               ),
@@ -157,7 +170,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           #textOutput("variableconfirm"),
                           hr(),
                           h4("Data"),
-                          tableOutput("uploads")
+                          DT::dataTableOutput("uploads")
                       )
                   )
              ),
@@ -210,7 +223,16 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           
                           conditionalPanel(
                             condition = "input.pscheck",
-                            checkboxInput("tmleadjust", "TMLE Adjustment?", FALSE)
+                            checkboxInput("tmleadjust", "TMLE Adjustment?", FALSE),
+                            
+                          
+                          hr(),
+                          #Input: Add common support rule
+                          radioButtons("csrule", "Select Common Support Rule",
+                                       choices = c("none" = "none",
+                                                   "sd" = "sd",
+                                                   "chisq" = "chisq"),
+                                       selected = "sd")
                           )
                           #####
                       ),
@@ -220,7 +242,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                           
                         # Output: plots
                         h4("Filtered Table"),
-                        tableOutput("filteredtable")
+                        DT::dataTableOutput("filteredtable")
                       )
                   )
               ),
@@ -235,12 +257,14 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                       # Sidebar Panel
                       sidebarPanel(
                           
-                          ############ new structure
                           # Input: Model Propensity Score
                           actionButton("runButton", "Run Model")
                       ),
                         # Main Panel
                         mainPanel(
+                          h5("Summary"),
+                          tableOutput("summary.table"),
+                          hr(),
                           verbatimTextOutput("summary")
                           ######
                       )
@@ -256,7 +280,9 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                       # Sidebar Panel
                       sidebarPanel(
                         
-                        h4("Check for overlap"),
+                        h4("Check for", actionLink("link4", "overlap and balance")),
+                        bsModal("Modal4", "Overlap and Balance", "link4", size = "large", 
+                                uiOutput("text4")),
                         selectInput("xvalplot", "Check overlap on which confounder?", 
                                     choices = NULL),
                         
@@ -268,12 +294,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                         hr(),
                         
                         h4("Common support plot"),
-                        #Input: Add common support rule
-                        radioButtons("csrule", "Select Common Support Rule",
-                                    choices = c("none" = "none",
-                                                "sd" = "sd",
-                                                "chisq" = "chisq"),
-                                     selected = "sd"),
+                        
                         
                         
                         #conditionalPanel(
@@ -360,6 +381,10 @@ server <- function(input, output, session) {
     tag2
   })
   
+  output$text4 <- renderUI({
+    tag4
+  })
+  
   # Image outputs
   output$img1 <- renderImage({
     return(list(
@@ -378,6 +403,11 @@ server <- function(input, output, session) {
       width = 480
     ))
   }, deleteFile = F)
+  
+  output$overlap_plty <- renderPlotly({
+    req(input$overlap1)
+    plotly_overlap(input$overlap1)
+  })
   
   # Create global data object
   my_data <- reactive({
@@ -406,9 +436,10 @@ server <- function(input, output, session) {
   })
   
   # Upload Data tab outputs
-  output$uploads <- renderTable({
+  output$uploads <- DT::renderDataTable({
     req(input$file)
-    return(head(my_data(), 20))
+    req(my_data())
+    return(my_data())
   })
   
   output$uploadconfirm <- renderText({
@@ -497,9 +528,9 @@ server <- function(input, output, session) {
   })
   
   # Filtered table display
-  output$filteredtable <- renderTable({
+  output$filteredtable <- DT::renderDataTable({
     req(filtered())
-    return(head(filtered(), 20))
+    return(round(filtered(), 2))
   })
 
   # Translating fit input and recode variables
@@ -531,7 +562,7 @@ server <- function(input, output, session) {
     if (input$gvarcheck) {
       return(filtered()[ ,ncol(filtered())])
     }
-    else return(FALSE)
+    else return(F)
   })
   
   # cscut argument
@@ -553,29 +584,48 @@ server <- function(input, output, session) {
   fit <- eventReactive(input$runButton, {
     req(filtered())
     
-    progress <- Progress$new(session, min=1, max=10)
+    progress <- Progress$new(session, min = 1, max = 12)
     on.exit(progress$close())
     
     progress$set(message = 'Model fitting in progress')
     
-    for (i in 1:10) {
+    for (i in 1:12) {
       progress$set(value = i)
       Sys.sleep(0.5)
     }
-    fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2],     
-                  confounders = as.matrix(filtered()[, 3:confnum()]), 
-                  estimand = input$estimand, method.rsp = rspmethod(),
-                  method.trt = input$trtmethod, commonSup.rule = input$csrule,
-                  group.by = gby(), keepCall = F, 
-                  p.scoreAsCovariate = psas(), use.rbart = input$gvarcheck
-#                  commonSup.cut = input$cscut, 
-                  )
+    if (input$gvarcheck) {
+      fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2],     
+                    confounders = as.matrix(filtered()[, 3:confnum()]), 
+                    estimand = input$estimand, method.rsp = rspmethod(),
+                    method.trt = input$trtmethod, commonSup.rule = input$csrule,
+                    group.by = gby(), keepCall = F, 
+                    p.scoreAsCovariate = psas(), use.rbart = input$gvarcheck
+                    #                  commonSup.cut = input$cscut, 
+      )
+    }
+    else {
+      fit0 <- bartc(response = filtered()[, 1], treatment = filtered()[, 2],     
+                    confounders = as.matrix(filtered()[, 3:confnum()]), 
+                    estimand = input$estimand, method.rsp = rspmethod(),
+                    method.trt = input$trtmethod, commonSup.rule = input$csrule,
+                    group.by = NULL, keepCall = F, 
+                    p.scoreAsCovariate = psas(), use.rbart = F
+                    #                  commonSup.cut = input$cscut, 
+      )
+    }
+    
     fit0    
   })
   
+  # Summary text output
+  output$summary.table <- renderTable({
+    req(fit())
+    as.data.frame(round(summary(fit())$estimates, 3))
+  })
   
-  # Summary output
+  # Summary chunk output
   output$summary <- renderPrint({
+    req(fit())
     summary(fit())
   })
   
@@ -670,7 +720,6 @@ server <- function(input, output, session) {
     plotlyob()
   })
   
-  
   output$supexp <- downloadHandler(
     filename = function(){
       "sup.png"
@@ -690,4 +739,5 @@ shinyApp(ui = ui, server = server)
 #testdata <- read.csv("/Users/George/Desktop/A3SR/Others/Causal_Inference_Shiny/experiment/simpletest.csv", header = T)
 #fit1 <- bartc(testdata$Outcome, testdata$Treatment, testdata[, 1:2], estimand = "ate")
 #cpsdat <- read.csv("/Users/George/Desktop/A3SR/Others/Causal_Inference_Shiny/experiment/cps.csv", header = T)
-#fit2 <- bartc(cpsdat$re78, cpsdat$treat, cpsdat$age + cpsdat$educ, estimand = "ate", method.trt = "glm", p.scoreAsCovariate = T, method.rsp = "bart", commonSup.rule = "sd")
+#fit2 <- bartc(cpsdat$re78t, cpsdat$treat, cpsdat$age + cpsdat$educ + cpsdat$re74t, estimand = "ate", method.trt = "glm", p.scoreAsCovariate = T, method.rsp = "bart", commonSup.rule = "sd")
+#fit3 <- bartc(cpsdat$re78t, cpsdat$treat, cpsdat$age + cpsdat$black + cpsdat$re74t, estimand = "ate", method.trt = "glm", p.scoreAsCovariate = T, method.rsp = "bart", commonSup.rule = "sd", group.by = cpsdat$educ)
